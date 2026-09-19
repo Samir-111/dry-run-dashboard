@@ -30,9 +30,8 @@ char ssid[] = "samir";
 char pass[] = "987654321";
 
 /******************** LIVE SERVER URL ***********************/
-// 👉 When deployed on Render: "https://your-dashboard.onrender.com"
-// 👉 For local/tunnel testing: "http://192.168.101.191:8081" (or your deployed URL)
-const char* SERVER_URL = "http://192.168.101.191:8081";
+// Live Render URL (Permanent 24/7 Cloud IoT Server):
+const char* SERVER_URL = "https://dry-run-dashboard.onrender.com";
 
 /******************** PIN CONFIGURATION **********************/
 const int RELAY_PIN = 4;
