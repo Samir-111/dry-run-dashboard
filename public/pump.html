@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2E7D5B">
+<meta name="description" content="Pump Protector — Control and monitor your borewell pump with dry-run protection.">
+<title>Pump Control — Pump Protector</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <div class="app-header">
+    <div class="title-block">
+      <h2>Pump Control</h2>
+      <p>
+        <span class="conn-dot" id="pumpConnDot"></span>
+        <span id="pumpConnText">Connecting to device…</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Safety Verification -->
+    <div class="card">
+      <p class="label-sm" style="display:block; margin-bottom:14px;">🛡️ Safety Verification</p>
+      <div class="checklist">
+        <div class="check-row">
+          <div class="check-icon" id="checkWater">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <path d="M20 6 9 17l-5-5"/>
+            </svg>
+          </div>
+          <span id="checkWaterText">Checking water sensor…</span>
+        </div>
+        <div class="check-row">
+          <div class="check-icon" id="checkConn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+              <path d="M20 6 9 17l-5-5"/>
+            </svg>
+          </div>
+          <span id="checkConnText">Checking Wi-Fi link…</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Power Button -->
+    <div class="card" style="text-align:center;">
+      <div class="power-btn-wrap">
+        <button class="power-btn off" id="pumpPowerBtn" title="Toggle Pump Power">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" id="pumpPowerIcon">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/>
+          </svg>
+          <span id="pumpPowerLabel">Connecting…</span>
+        </button>
+      </div>
+      <p style="text-align:center; color:var(--muted); font-size:13.5px; font-weight:600; margin:4px 0 4px;" id="pumpStatusLine">
+        Checking status…
+      </p>
+    </div>
+
+    <!-- Runtime Counters -->
+    <div class="card">
+      <p class="label-sm" style="display:block; margin-bottom:14px;">⏱ Runtime Counters</p>
+      <div class="row-between">
+        <span class="label-sm">Active Run Time</span>
+        <span class="value-md" id="pumpRuntime">—</span>
+      </div>
+      <div class="divider"></div>
+      <div class="row-between">
+        <span class="label-sm">Bypass / Auto-Reset Countdown</span>
+        <span class="value-md" id="pumpCountdown">—</span>
+      </div>
+    </div>
+
+    <!-- Dry-Run Lockout Card -->
+    <div class="card" id="pumpResetCard"
+      style="display:none; background:var(--danger-light); border-color:rgba(239,83,80,0.3); border-left:4px solid var(--danger);">
+      <div class="row-between">
+        <div>
+          <h4 style="margin:0 0 4px; font-size:14px; font-weight:800; color:var(--danger-dark);">
+            🔒 Dry-Run Lockout Active
+          </h4>
+          <p style="margin:0; font-size:12.5px; color:var(--muted);">
+            Motor is stopped. Ensure water is present in the borewell before resetting.
+          </p>
+        </div>
+        <button class="btn btn-primary"
+          style="width:auto; padding:9px 16px; font-size:12.5px; background:var(--danger); box-shadow:0 4px 12px rgba(239,83,80,0.35); flex-shrink:0;"
+          onclick="handleEmergencyStop()">Reset</button>
+      </div>
+    </div>
+
+  </div><!-- .content -->
+
+  <div id="bottomNav"></div>
+</div><!-- #app -->
+
+<script src="js/app.js?v=7"></script>
+<script>
+  requireAuth();
+  injectNav('pump');
+
+  let currentState = {};
+  let isSendingCommand = false;
+
+  startPolling((state, reachable, live) => {
+    currentState = state;
+    setConnDot('pumpConnDot', live);
+    const label = connLabel(reachable, live);
+    document.getElementById('pumpConnText').textContent = label;
+
+    // Safety checks
+    setCheck('checkConn', live, live ? 'ESP32 Connected to Blynk' : label);
+
+    const waterPresent = live ? isWaterPresent(state.waterStatus, state.waterRaw) : null;
+    if (waterPresent === null) {
+      const icon = document.getElementById('checkWater');
+      icon.className = 'check-icon';
+      icon.style.background = '#ECEFF1';
+      icon.style.color = 'var(--ink-dim)';
+      document.getElementById('checkWaterText').textContent = live ? 'Water sensor awaiting reading' : 'Checking water sensor…';
+    } else {
+      setCheck('checkWater', waterPresent, waterPresent ? 'Water Level Normal (Safe to pump)' : 'Water Absent — Dry Run Risk!');
+    }
+
+    const running = pumpIsRunning(state);
+    const powerBtn = document.getElementById('pumpPowerBtn');
+
+    if (!isSendingCommand) {
+      powerBtn.disabled = false;
+      if (running) {
+        powerBtn.className = 'power-btn active-pulse';
+        document.getElementById('pumpPowerLabel').textContent = 'Stop Pump';
+      } else {
+        powerBtn.className = 'power-btn off';
+        document.getElementById('pumpPowerLabel').textContent = 'Start Pump';
+      }
+    }
+
+    // Status text
+    if (running) {
+      const stateDesc = state.systemState || 'RUNNING';
+      document.getElementById('pumpStatusLine').textContent = `Pump relay is ACTIVE (${stateDesc})`;
+      document.getElementById('pumpStatusLine').style.color = 'var(--green-dark)';
+    } else {
+      document.getElementById('pumpStatusLine').textContent = live ? 'Pump relay is OFF' : `Pump is OFF (${label})`;
+      document.getElementById('pumpStatusLine').style.color = 'var(--ink-secondary)';
+    }
+
+    // Timers
+    document.getElementById('pumpRuntime').textContent   = live && state.runtime    ? state.runtime  : (live ? '00:00:00' : '—');
+    document.getElementById('pumpCountdown').textContent = live && state.countdown > 0 ? `${state.countdown}s` : (live ? 'Inactive' : '—');
+
+    // Fault lockout card
+    const hasFault = live && ((state.fault && String(state.fault).toUpperCase() !== 'NONE') || (state.systemState && state.systemState.includes('FAULT')));
+    document.getElementById('pumpResetCard').style.display = hasFault ? 'block' : 'none';
+  });
+
+  document.getElementById('pumpPowerBtn').addEventListener('click', async () => {
+    if (isSendingCommand) return;
+    const running     = pumpIsRunning(currentState);
+    const targetState = !running;
+
+    isSendingCommand = true;
+    const powerBtn = document.getElementById('pumpPowerBtn');
+    const label    = document.getElementById('pumpPowerLabel');
+    label.textContent = targetState ? 'Starting…' : 'Stopping…';
+    toast(targetState ? 'Sending START command to pump…' : 'Sending STOP command to pump…');
+
+    try {
+      await postMotor(targetState);
+      toast(targetState ? 'Pump started successfully' : 'Pump stopped successfully', 'success');
+      currentState.relay       = targetState ? 1 : 0;
+      currentState.relayStatus = targetState ? 1 : 0;
+    } catch (err) {
+      toast(err.message || 'Failed to send command to pump', 'error');
+    } finally {
+      setTimeout(() => { isSendingCommand = false; }, 1000);
+    }
+  });
+
+  async function handleEmergencyStop() {
+    toast('Stopping pump and resetting lockout…');
+    try {
+      await postReset();
+      toast('Lockout reset sent to device', 'success');
+    } catch (err) {
+      toast(err.message || 'Reset failed', 'error');
+    }
+  }
+</script>
+</body>
+</html>

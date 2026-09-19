@@ -1,0 +1,14 @@
+{
+  "name": "Pump Protector",
+  "short_name": "Pump",
+  "description": "Dry run motor protector — control and monitor your pump",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F3F2FB",
+  "theme_color": "#6C5CE7",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

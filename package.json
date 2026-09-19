@@ -1,0 +1,16 @@
+{
+  "name": "dry-run-protector-dashboard",
+  "version": "1.0.0",
+  "description": "Web dashboard for a Dry Run Motor Protector, proxying to the Blynk Cloud API",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "blynk-library": "^0.5.4",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-fetch": "^2.7.0",
+    "twilio": "^5.3.0"
+  }
+}

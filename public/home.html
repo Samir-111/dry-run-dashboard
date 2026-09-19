@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2E7D5B">
+<meta name="description" content="Pump Protector — Home dashboard for your borewell dry-run protection system.">
+<title>Home — Pump Protector</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <div class="app-header">
+    <div class="greet">
+      <h1 id="homeGreeting">Hello 👋</h1>
+      <p id="homeDate">—</p>
+    </div>
+    <div class="header-actions">
+      <span class="conn-dot" id="homeConnDot" title="Connection status"></span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- Hero Status Card -->
+    <div class="card big-state" id="homeStateCard">
+      <div class="icon-circle" id="homeStateIcon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" id="homeStateSvg">
+          <path d="M12 2 5 9c-3.5 3.9-3.5 9.1 0 13a9.9 9.9 0 0 0 14 0c3.5-3.9 3.5-9.1 0-13z"/>
+          <circle cx="12" cy="15" r="3"/>
+        </svg>
+      </div>
+      <h2 id="homeStateText">Connecting…</h2>
+      <p id="homeStateSub">Checking connection with pump unit…</p>
+    </div>
+
+    <!-- Dry-Run Fault Banner -->
+    <div class="card" id="homeFaultBanner"
+      style="display:none; background:var(--danger-light); border-color:rgba(239,83,80,0.3); border-left:4px solid var(--danger);">
+      <div class="alert-card">
+        <div class="alert-icon red">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          </svg>
+        </div>
+        <div class="alert-body">
+          <h3 id="homeFaultTitle">Dry-Run Protection Active</h3>
+          <p id="homeFaultDesc">Pump was stopped to prevent motor damage. Check water level before restarting.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Pump Action Card -->
+    <div class="card" style="display:flex; align-items:center; justify-content:space-between; padding:16px 18px; border-left:4px solid var(--primary); margin-top:-4px;">
+      <div>
+        <span class="label-sm" style="display:block; margin-bottom:2px;">⚡ Quick Motor Switch</span>
+        <h4 style="margin:0; font-size:15px; font-weight:700;" id="homeQuickPumpTitle">Pump is OFF</h4>
+        <span style="font-size:12px; color:var(--muted);" id="homeQuickPumpSub">Tap button to start motor</span>
+      </div>
+      <button id="homeQuickToggleBtn" class="btn" style="width:auto; padding:10px 18px; font-size:13px; font-weight:700; border-radius:12px; background:var(--primary); color:#fff; cursor:pointer; display:flex; align-items:center; gap:6px; transition:all 0.2s;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/></svg>
+        <span id="homeQuickToggleLabel">Start Pump</span>
+      </button>
+    </div>
+
+    <!-- Quick Navigation Grid -->
+    <div class="quick-grid">
+      <a class="quick-card" href="pump.html" id="qcPump">
+        <div class="qi" style="background:#E8F5EE; color:#2E7D5B;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/>
+          </svg>
+        </div>
+        <div class="qlabel">Pump Control</div>
+        <div class="qsub" id="homePumpQuickStatus">Start or stop pump</div>
+      </a>
+
+      <a class="quick-card" href="dashboard.html" id="qcData">
+        <div class="qi" style="background:#E1F5FE; color:#0288D1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M3 3v18h18M7 15l4-4 3 3 5-6"/>
+          </svg>
+        </div>
+        <div class="qlabel">Telemetry</div>
+        <div class="qsub">ADC &amp; sensors</div>
+      </a>
+
+      <a class="quick-card" href="alerts.html" id="qcAlerts">
+        <div class="qi" style="background:#FFEBEE; color:#EF5350;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </div>
+        <div class="qlabel">Alert Center</div>
+        <div class="qsub" id="homeAlertCount">No alerts</div>
+      </a>
+
+      <a class="quick-card" href="profile.html" id="qcProfile">
+        <div class="qi" style="background:#FFF8E1; color:#E65100;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>
+          </svg>
+        </div>
+        <div class="qlabel">Device Info</div>
+        <div class="qsub">ESP32 &amp; GSM</div>
+      </a>
+    </div>
+
+    <!-- Live Status Overview -->
+    <div class="card">
+      <p class="label-sm" style="margin-bottom:14px; display:block;">Live Status Overview</p>
+      <div class="row-between">
+        <span class="label-sm">Water Sensor</span>
+        <span class="status-pill pill-gray" id="homeWaterPill">
+          <span class="dot"></span><span>Checking…</span>
+        </span>
+      </div>
+      <div class="divider"></div>
+      <div class="row-between">
+        <span class="label-sm">Total Run Time</span>
+        <span class="value-md" id="homeRuntime">—</span>
+      </div>
+      <div class="divider"></div>
+      <div class="row-between">
+        <span class="label-sm">Protection State</span>
+        <span class="value-md" id="homeProtection">—</span>
+      </div>
+    </div>
+
+  </div><!-- .content -->
+
+  <div id="bottomNav"></div>
+</div><!-- #app -->
+
+<script src="js/app.js?v=7"></script>
+<script>
+  requireAuth();
+  injectNav('home');
+
+  const auth = loadAuth();
+  if (auth && auth.name) {
+    document.getElementById('homeGreeting').textContent = `Hello, ${auth.name} 👋`;
+  }
+  document.getElementById('homeDate').textContent = new Date().toLocaleDateString(undefined, {
+    weekday: 'long', month: 'short', day: 'numeric'
+  });
+
+  const stateColors = {
+    green: { bg: '#E8F5EE', color: '#2E7D5B' },
+    amber: { bg: '#FFF8E1', color: '#E65100' },
+    red:   { bg: '#FFEBEE', color: '#C62828' },
+    gray:  { bg: '#ECEFF1', color: '#607D8B' }
+  };
+
+  let homeCurrentState = {};
+  let homeSending = false;
+
+  startPolling((state, reachable, live) => {
+    homeCurrentState = state;
+    setConnDot('homeConnDot', live);
+
+    const hasFault = live && state.fault && String(state.fault).toUpperCase() !== 'NONE';
+    const isRunning = pumpIsRunning(state);
+
+    let displayState = 'OFFLINE';
+    if (live) {
+      if (state.systemState)   { displayState = state.systemState; }
+      else if (hasFault)       { displayState = 'FAULT LOCK'; }
+      else if (isRunning)      { displayState = 'RUNNING'; }
+      else                     { displayState = 'IDLE / OFF'; }
+    }
+
+    document.getElementById('homeStateText').textContent = live ? displayState : 'Unit Offline';
+    document.getElementById('homeStateSub').textContent  = live
+      ? describeState(displayState, hasFault ? state.fault : null)
+      : connLabel(reachable, live);
+
+    const colorKey = stateColor(live ? displayState : null, live ? state.fault : null);
+    const theme = stateColors[colorKey] || stateColors.gray;
+    const iconCircle = document.getElementById('homeStateIcon');
+    iconCircle.style.background = theme.bg;
+    iconCircle.style.color      = theme.color;
+
+    const faultBanner = document.getElementById('homeFaultBanner');
+    if (hasFault) {
+      faultBanner.style.display = 'block';
+      document.getElementById('homeFaultTitle').textContent = `Alert: ${state.fault}`;
+      document.getElementById('homeFaultDesc').textContent  = 'Pump was stopped to prevent motor damage. Check water level before restarting.';
+    } else {
+      faultBanner.style.display = 'none';
+    }
+
+    // Quick toggle button on Home
+    const quickBtn   = document.getElementById('homeQuickToggleBtn');
+    const quickTitle = document.getElementById('homeQuickPumpTitle');
+    const quickSub   = document.getElementById('homeQuickPumpSub');
+    const quickLabel = document.getElementById('homeQuickToggleLabel');
+
+    if (!homeSending) {
+      if (isRunning) {
+        quickTitle.textContent = 'Pump is RUNNING';
+        quickSub.textContent   = 'Tap button to stop motor';
+        quickLabel.textContent = 'Stop Pump';
+        quickBtn.style.background = 'var(--danger)';
+      } else {
+        quickTitle.textContent = 'Pump is OFF';
+        quickSub.textContent   = 'Tap button to start motor';
+        quickLabel.textContent = 'Start Pump';
+        quickBtn.style.background = 'var(--primary)';
+      }
+    }
+
+    const waterPresent = live ? isWaterPresent(state.waterStatus, state.waterRaw) : null;
+    if (waterPresent === null) { setPill('homeWaterPill', '—', 'gray'); }
+    else if (waterPresent)     { setPill('homeWaterPill', 'Water Present', 'green'); }
+    else                       { setPill('homeWaterPill', 'Water Absent', 'red'); }
+
+    document.getElementById('homeRuntime').textContent    = live && state.runtime ? state.runtime : (live ? '00:00:00' : '—');
+    document.getElementById('homeProtection').textContent = live && state.protectionStatus ? state.protectionStatus : (live ? 'NORMAL' : '—');
+    document.getElementById('homePumpQuickStatus').textContent = live ? (isRunning ? '🟢 Pump is RUNNING' : '⚪ Pump is STOPPED') : 'Connecting…';
+
+    const alertCount = loadAlerts().length;
+    document.getElementById('homeAlertCount').textContent = alertCount === 0 ? 'No alerts' : `${alertCount} logged`;
+  });
+
+  document.getElementById('homeQuickToggleBtn').addEventListener('click', async () => {
+    if (homeSending) return;
+    const running = pumpIsRunning(homeCurrentState);
+    const targetState = !running;
+    homeSending = true;
+
+    const label = document.getElementById('homeQuickToggleLabel');
+    label.textContent = targetState ? 'Starting…' : 'Stopping…';
+    toast(targetState ? 'Sending START command to pump…' : 'Sending STOP command to pump…');
+
+    try {
+      await postMotor(targetState);
+      toast(targetState ? 'Pump started successfully' : 'Pump stopped successfully', 'success');
+      homeCurrentState.relay = targetState ? 1 : 0;
+      homeCurrentState.relayStatus = targetState ? 1 : 0;
+    } catch (err) {
+      toast(err.message || 'Failed to toggle pump', 'error');
+    } finally {
+      setTimeout(() => { homeSending = false; }, 1000);
+    }
+  });
+</script>
+</body>
+</html>

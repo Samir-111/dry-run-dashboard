@@ -1,0 +1,5 @@
+node_modules/
+.env
+data/alert-contact.json
+.DS_Store
+*.log

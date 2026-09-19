@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2E7D5B">
+<meta name="description" content="Pump Protector — Telemetry data and sensor readings from your ESP32 borewell system.">
+<title>Telemetry — Pump Protector</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <div class="app-header">
+    <div class="title-block">
+      <h2>Telemetry Data</h2>
+      <p>
+        <span class="conn-dot" id="dashConnDot"></span>
+        <span id="dashConnText">Connecting to Blynk…</span>
+      </p>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- System State -->
+    <div class="card">
+      <div class="row-between">
+        <span class="label-sm">System Mode / State</span>
+        <span class="status-pill pill-gray" id="dashStatePill">
+          <span class="dot"></span><span>Connecting…</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- Fault Banner -->
+    <div class="card" id="dashFaultCard"
+      style="display:none; background:var(--danger-light); border-color:rgba(239,83,80,0.3); border-left:4px solid var(--danger);">
+      <div class="alert-card">
+        <div class="alert-icon red">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+          </svg>
+        </div>
+        <div class="alert-body">
+          <h3>Fault Triggered</h3>
+          <p id="dashFaultText">—</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pump + Water Status (large metric cards) -->
+    <div class="quick-grid">
+      <div class="card" style="display:flex; flex-direction:column; gap:8px; border-left:3px solid var(--primary);">
+        <span class="label-sm">Pump Relay</span>
+        <span class="value-md" id="dashPump" style="color:var(--primary); font-size:15px;">—</span>
+      </div>
+      <div class="card" style="display:flex; flex-direction:column; gap:8px; border-left:3px solid var(--water);">
+        <span class="label-sm">Water Presence</span>
+        <span class="value-md" id="dashWater" style="color:var(--green-dark); font-size:15px;">—</span>
+      </div>
+    </div>
+
+    <!-- Operational Timers -->
+    <div class="card">
+      <p class="label-sm" style="display:block; margin-bottom:14px;">⏱ Operational Timers</p>
+      <div class="row-between">
+        <span class="label-sm">Accumulated Runtime</span>
+        <span class="value-md" id="dashRuntime">—</span>
+      </div>
+      <div class="divider"></div>
+      <div class="row-between">
+        <span class="label-sm">Auto-Reset Countdown</span>
+        <span class="value-md" id="dashCountdown">—</span>
+      </div>
+    </div>
+
+    <!-- Sensor Diagnostics -->
+    <div class="card">
+      <p class="label-sm" style="display:block; margin-bottom:14px;">🔬 Sensor Diagnostics</p>
+      <div class="row-between">
+        <span class="label-sm">Protection Status</span>
+        <span class="value-md" id="dashProtection">—</span>
+      </div>
+      <div class="divider"></div>
+      <div class="row-between">
+        <span class="label-sm">Relay GPIO Confirmed</span>
+        <span class="value-md" id="dashRelay">—</span>
+      </div>
+      <div class="divider"></div>
+      <div class="row-between">
+        <span class="label-sm">Water Sensor (ADC raw)</span>
+        <span class="value-md" id="dashWaterRaw">—</span>
+      </div>
+      <div class="divider"></div>
+      <div class="row-between">
+        <span class="label-sm">Dry Threshold Setting</span>
+        <span class="value-md" id="dashThreshold">1500 (default)</span>
+      </div>
+      <div class="divider"></div>
+      <div class="row-between">
+        <span class="label-sm">ESP32 Wi-Fi Status</span>
+        <span class="value-md" id="dashWifi">—</span>
+      </div>
+    </div>
+
+    <!-- Threshold Calibration -->
+    <div class="card">
+      <p class="label-sm" style="display:block; margin-bottom:6px;">⚙️ Water Threshold Calibration (V10)</p>
+      <p style="font-size:12.5px; color:var(--muted); margin:0 0 14px; line-height:1.5;">
+        Set the analog ADC threshold for dry-run detection. Default: <strong>1500</strong>. Higher value = more sensitive detection.
+      </p>
+      <div style="display:flex; gap:10px;">
+        <input type="number" id="inputThreshold" placeholder="e.g. 1500" min="0" max="4095"
+          style="flex:1; padding:11px 14px; border-radius:12px; border:1.5px solid var(--border);
+                 font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:600;
+                 background:var(--bg); color:var(--text); outline:none; transition:border-color 0.2s;"
+          onfocus="this.style.borderColor='var(--primary)'"
+          onblur="this.style.borderColor='var(--border)'">
+        <button class="btn btn-primary" id="btnSetThreshold"
+          style="width:auto; padding:11px 20px; font-size:13.5px;"
+          onclick="handleSetThreshold()">Update</button>
+      </div>
+    </div>
+
+  </div><!-- .content -->
+
+  <div id="bottomNav"></div>
+</div><!-- #app -->
+
+<script src="js/app.js?v=7"></script>
+<script>
+  requireAuth();
+  injectNav('dashboard');
+
+  startPolling((state, reachable, live) => {
+    setConnDot('dashConnDot', live);
+    document.getElementById('dashConnText').textContent = connLabel(reachable, live);
+
+    const hasFault = live && state.fault && String(state.fault).toUpperCase() !== 'NONE';
+    const isRunning = pumpIsRunning(state);
+
+    // System State pill
+    const sysState = live ? (state.systemState || (isRunning ? 'RUNNING' : 'OFF')) : 'Offline';
+    setPill('dashStatePill', sysState, stateColor(live ? sysState : null, live ? state.fault : null));
+
+    // Fault Card
+    const faultCard = document.getElementById('dashFaultCard');
+    if (hasFault) {
+      faultCard.style.display = 'block';
+      document.getElementById('dashFaultText').textContent = `${state.fault} — Check water source & reset pump.`;
+    } else {
+      faultCard.style.display = 'none';
+    }
+
+    // Pump & Water status
+    if (!live) {
+      document.getElementById('dashPump').textContent  = '—';
+      document.getElementById('dashWater').textContent = '—';
+    } else {
+      document.getElementById('dashPump').textContent = state.pumpStatus || (isRunning ? 'ON / RUNNING' : 'OFF / STOPPED');
+
+      const waterPresent = isWaterPresent(state.waterStatus, state.waterRaw);
+      document.getElementById('dashWater').textContent  = waterPresent === null ? '—' : (waterPresent ? 'PRESENT (OK)' : 'ABSENT (DRY)');
+      document.getElementById('dashWater').style.color  = waterPresent ? 'var(--green-dark)' : 'var(--red-dark)';
+    }
+
+    // Timers
+    document.getElementById('dashRuntime').textContent   = live && state.runtime    ? state.runtime           : (live ? '00:00:00' : '—');
+    document.getElementById('dashCountdown').textContent = live && state.countdown > 0 ? `${state.countdown}s remaining` : (live ? 'Inactive (0s)' : '—');
+
+    // Diagnostics
+    document.getElementById('dashProtection').textContent = live && state.protectionStatus ? state.protectionStatus : (live ? 'NORMAL' : '—');
+    document.getElementById('dashRelay').textContent      = live && state.relayStatus !== null ? (state.relayStatus ? 'ACTIVE (HIGH)' : 'INACTIVE (LOW)') : '—';
+    document.getElementById('dashWaterRaw').textContent   = live && state.waterRaw !== null   ? `${state.waterRaw} ADC` : '—';
+    document.getElementById('dashThreshold').textContent  = live && state.waterThreshold !== null ? `${state.waterThreshold}` : '1500 (default)';
+    document.getElementById('dashWifi').textContent       = live && state.wifiStatus ? state.wifiStatus : (live ? 'CONNECTED' : '—');
+  });
+
+  async function handleSetThreshold() {
+    const input = document.getElementById('inputThreshold');
+    const val   = Number(input.value.trim());
+    if (isNaN(val) || val < 0) { toast('Please enter a valid positive number', 'error'); return; }
+    const btn = document.getElementById('btnSetThreshold');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      await postThreshold(val);
+      toast(`Threshold updated to ${val}`, 'success');
+      input.value = '';
+    } catch (err) {
+      toast(err.message || 'Failed to update threshold', 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Update';
+    }
+  }
+</script>
+</body>
+</html>

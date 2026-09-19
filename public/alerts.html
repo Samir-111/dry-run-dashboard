@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#2E7D5B">
+<meta name="description" content="Pump Protector — Alert center for dry-run, water, and GSM fault events.">
+<title>Alert Center — Pump Protector</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+
+  <div class="app-header">
+    <div class="title-block">
+      <h2>Alert Center</h2>
+      <p id="alertsSub">Checking logs…</p>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" onclick="handleClear()" title="Clear Alert History" id="btnClear">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="content" style="gap:12px;">
+
+    <!-- Notification Enable Button -->
+    <div id="notifCard" style="display:none;">
+      <button class="notif-btn" id="notifBtn" onclick="handleEnableNotif()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>
+        </svg>
+        <span id="notifBtnText">Enable Push Notifications for Fault Alerts</span>
+      </button>
+    </div>
+
+    <!-- Category Tabs -->
+    <div class="tab-row" role="tablist" id="tabRow">
+      <button class="tab-btn active" id="tab-all"     onclick="setTab('all')"     role="tab" aria-selected="true">All</button>
+      <button class="tab-btn"        id="tab-protect" onclick="setTab('protect')" role="tab">🔴 Protection</button>
+      <button class="tab-btn"        id="tab-gsm"     onclick="setTab('gsm')"     role="tab">📱 GSM / SMS</button>
+      <button class="tab-btn"        id="tab-water"   onclick="setTab('water')"   role="tab">💧 Water</button>
+    </div>
+
+    <!-- Alert List (dynamically populated) -->
+    <div id="alertsList">
+      <!-- populated by renderAlerts() -->
+    </div>
+
+  </div><!-- .content -->
+
+  <div id="bottomNav"></div>
+</div><!-- #app -->
+
+<script src="js/app.js"></script>
+<script>
+  requireAuth();
+  injectNav('alerts');
+
+  requestNotificationPermission();
+
+  let activeTab = 'all';
+
+  // ── Notification button state ──────────────────────────────────
+  function updateNotifButton() {
+    const card = document.getElementById('notifCard');
+    const btn  = document.getElementById('notifBtn');
+    const txt  = document.getElementById('notifBtnText');
+
+    if (!('Notification' in window)) { card.style.display = 'none'; return; }
+    card.style.display = 'block';
+
+    if (Notification.permission === 'granted') {
+      btn.className = 'notif-btn granted';
+      txt.textContent = '✓ Push Notifications Enabled';
+    } else if (Notification.permission === 'denied') {
+      btn.className = 'notif-btn';
+      txt.textContent = 'Notifications blocked — enable in browser settings';
+    } else {
+      btn.className = 'notif-btn';
+      txt.textContent = 'Enable Push Notifications for Fault Alerts';
+    }
+  }
+
+  function handleEnableNotif() {
+    if (!('Notification' in window) || Notification.permission === 'granted') return;
+    Notification.requestPermission().then(() => updateNotifButton());
+  }
+
+  // ── Tab switching ──────────────────────────────────────────────
+  function setTab(tab) {
+    activeTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => {
+      b.classList.toggle('active', b.id === `tab-${tab}`);
+      b.setAttribute('aria-selected', b.id === `tab-${tab}`);
+    });
+    renderAlerts();
+  }
+
+  // ── Alert rendering ────────────────────────────────────────────
+  function renderAlerts() {
+    const pumpAlerts = loadAlerts();
+    const gsmAlerts  = loadGSMLog();
+
+    const all = [
+      ...pumpAlerts.map(a  => ({ ...a, category: detectCategory(a) })),
+      ...gsmAlerts.map(g   => ({
+        ...g,
+        category: 'gsm',
+        fault:  g.type === 'test' ? 'GSM Test Event' : (g.message ? 'SMS Alert Sent' : 'Call Made'),
+        detail: g.message || `To: ${g.to || 'farmer'}`
+      }))
+    ].sort((a, b) => new Date(b.time) - new Date(a.time));
+
+    const filtered  = activeTab === 'all' ? all : all.filter(a => a.category === activeTab);
+    const container = document.getElementById('alertsList');
+    const total     = all.length;
+
+    document.getElementById('alertsSub').textContent =
+      total === 0 ? 'All systems normal' : `${total} event${total !== 1 ? 's' : ''} recorded`;
+
+    if (filtered.length === 0) {
+      const emptyMsg = activeTab === 'all'
+        ? 'No faults logged. Dry-run trips, water loss events, and GSM alerts appear here.'
+        : `No ${activeTab} events logged yet.`;
+      container.innerHTML = `
+        <div class="card empty-state">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <p style="color:var(--text); font-weight:800; font-size:16px; margin-bottom:6px;">All Clear</p>
+          <p style="color:var(--muted); font-size:13px; line-height:1.55;">${emptyMsg}</p>
+        </div>`;
+      return;
+    }
+
+    container.innerHTML = filtered.map(a => renderAlertCard(a)).join('');
+  }
+
+  function detectCategory(a) {
+    const f = String(a.fault  || '').toUpperCase();
+    const d = String(a.detail || '').toUpperCase();
+    if (f.includes('GSM') || f.includes('SMS') || f.includes('CALL') || d.includes('SMS') || d.includes('GSM')) return 'gsm';
+    if (f.includes('WATER') || d.includes('WATER')) return 'water';
+    return 'protect';
+  }
+
+  function renderAlertCard(a) {
+    const cat  = a.category || 'protect';
+    const time = a.time ? new Date(a.time).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+
+    const iconMap = {
+      protect: { color: 'red',   borderColor: 'var(--danger)',  icon: '<path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>' },
+      gsm:     { color: 'blue',  borderColor: 'var(--water)',   icon: '<rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/>' },
+      water:   { color: 'amber', borderColor: 'var(--warning)', icon: '<path d="M12 2 5 9c-3.5 3.9-3.5 9.1 0 13a9.9 9.9 0 0 0 14 0c3.5-3.9 3.5-9.1 0-13z"/>' }
+    };
+    const { color, borderColor, icon } = iconMap[cat] || iconMap.protect;
+
+    const tagLabel = { gsm: 'GSM', water: 'Water', protect: 'Protection' }[cat] || 'Protection';
+
+    return `
+      <div class="card alert-card" style="border-left-color:${borderColor}; margin-bottom:0;">
+        <div class="alert-icon ${color}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${icon}</svg>
+        </div>
+        <div class="alert-body">
+          <h3>
+            <span class="alert-tag ${cat}">${tagLabel}</span>
+            ${a.fault || 'Event'}
+          </h3>
+          <p>${a.detail || '—'}</p>
+          <div class="alert-time">${time}</div>
+        </div>
+      </div>`;
+  }
+
+  // ── Clear handler ──────────────────────────────────────────────
+  function handleClear() {
+    if (activeTab === 'all') {
+      clearAlerts(); clearGSMLog();
+      toast('All alerts cleared', 'info');
+    } else if (activeTab === 'gsm') {
+      clearGSMLog();
+      toast('GSM log cleared', 'info');
+    } else {
+      clearAlerts();
+      toast('Protection log cleared', 'info');
+    }
+    renderAlerts();
+  }
+
+  // ── Initial render + live poll ─────────────────────────────────
+  updateNotifButton();
+  renderAlerts();
+  startPolling(() => renderAlerts());
+</script>
+</body>
+</html>
