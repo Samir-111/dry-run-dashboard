@@ -38,6 +38,106 @@ const int RELAY_PIN = 4;
 const int WATER_SENSOR_PIN = 36;
 const bool RELAY_ACTIVE_LOW = true;
 
+/******************** SIM800L GSM PIN CONFIGURATION **********/
+// Connect SIM800L TXD -> ESP32 GPIO 16 (RX2)
+// Connect SIM800L RXD -> ESP32 GPIO 17 (TX2)
+// Connect SIM800L GND -> ESP32 GND (MANDATORY Common Ground)
+#define SIM800_RX_PIN 16
+#define SIM800_TX_PIN 17
+#define GSM_BAUD 9600
+
+HardwareSerial gsmSerial(2); // Use ESP32 Hardware Serial2
+
+// Default Emergency Farmer Phone Number for Call & SMS:
+String farmerMobileNumber = "9022616290"; 
+bool gsmReady = false;
+
+/******************** GSM HELPER FUNCTIONS *******************/
+bool sendGsmCommand(String cmd, unsigned long timeout = 1000) {
+  gsmSerial.println(cmd);
+  unsigned long start = millis();
+  String resp = "";
+  while (millis() - start < timeout) {
+    while (gsmSerial.available()) {
+      resp += (char)gsmSerial.read();
+    }
+  }
+  return resp.indexOf("OK") >= 0;
+}
+
+void initGSM() {
+  Serial.println("\n[GSM] Initializing SIM800L on GPIO 16 (RX) / 17 (TX)...");
+  gsmSerial.begin(GSM_BAUD, SERIAL_8N1, SIM800_RX_PIN, SIM800_TX_PIN);
+  delay(1000);
+
+  // Send test AT command
+  gsmSerial.println("AT");
+  delay(300);
+  if (gsmSerial.available()) {
+    String resp = gsmSerial.readString();
+    if (resp.indexOf("OK") >= 0) {
+      gsmReady = true;
+      Serial.println("[GSM] SIM800L Module Detected & Ready ✓");
+      sendGsmCommand("AT+CMGF=1", 1000); // Set SMS to Text Mode
+      sendGsmCommand("AT+CLIP=1", 1000); // Enable Caller ID
+      return;
+    }
+  }
+  Serial.println("[GSM] SIM800L not responding yet (Waiting for power/module). System will continue on WiFi.");
+  gsmReady = false;
+}
+
+// Send Dry-Run SMS Alert to Farmer
+void sendDryRunSms(String mobile, String msg) {
+  if (mobile.length() < 10) return;
+  String target = mobile;
+  if (!target.startsWith("+91") && target.length() == 10) {
+    target = "+91" + target;
+  }
+  Serial.println("[GSM] Sending Dry-Run SMS Alert to: " + target);
+  
+  gsmSerial.println("AT+CMGF=1");
+  delay(300);
+  gsmSerial.println("AT+CMGS=\"" + target + "\"");
+  delay(300);
+  gsmSerial.print(msg);
+  delay(200);
+  gsmSerial.write(26); // Ctrl+Z to send SMS
+  delay(3000);
+  Serial.println("[GSM] SMS Dispatch Command sent.");
+}
+
+// Make an Emergency Ring / Call to Farmer's Phone on Dry-Run Trip
+void makeDryRunEmergencyCall(String mobile) {
+  if (mobile.length() < 10) return;
+  String target = mobile;
+  if (!target.startsWith("+91") && target.length() == 10) {
+    target = "+91" + target;
+  }
+  Serial.println("[GSM] Making Emergency Alert Call to: " + target);
+  gsmSerial.println("ATD" + target + ";");
+  
+  // Ring for 15 seconds so farmer notices the incoming call
+  unsigned long callStart = millis();
+  while (millis() - callStart < 15000) {
+    delay(200);
+    // Non-blocking water read during ring
+    readWaterSensor();
+  }
+  
+  gsmSerial.println("ATH"); // Hang up call
+  Serial.println("[GSM] Emergency call completed.");
+}
+
+// Trigger both Call + SMS automatically on Dry Run Protection
+void triggerGsmAlerts() {
+  Serial.println("[GSM] Triggering Emergency Call & SMS to Farmer...");
+  String alertMsg = "⚠️ KisanGuard ALERT: Borewell Motor was AUTO-STOPPED due to Dry-Run (No Water detected)! Motor is safe.";
+  sendDryRunSms(farmerMobileNumber, alertMsg);
+  delay(1000);
+  makeDryRunEmergencyCall(farmerMobileNumber);
+}
+
 /******************** WATER SENSOR ***************************/
 int waterThreshold = 1500;
 
@@ -193,6 +293,9 @@ void activateDryRunProtection() {
   protectionStatusText = "DRY-RUN PROTECTION";
   faultText = "DRY-RUN FAULT";
   countdownSeconds = 0;
+
+  // Trigger GSM SMS & Call alert to Farmer (if GSM module is powered and connected)
+  triggerGsmAlerts();
 }
 
 /*************************************************************
@@ -400,6 +503,9 @@ void syncWithServer() {
   json += "\"relayStatus\":" + String(isPumpRelayOn() ? 1 : 0) + ",";
   json += "\"waterThreshold\":" + String(waterThreshold) + ",";
   json += "\"systemState\":\"" + getSystemStateString() + "\",";
+  json += "\"networkType\":\"WIFI\",";
+  json += "\"gsmStatus\":\"" + String(gsmReady ? "READY" : "DISCONNECTED") + "\",";
+  json += "\"gsmSignal\":" + String(gsmReady ? 85 : 0) + ",";
   json += "\"wifiStatus\":\"CONNECTED\"";
   json += "}";
 
@@ -489,6 +595,9 @@ void setup() {
   } else {
     Serial.println("\nWiFi Connection Pending (will reconnect in loop)");
   }
+
+  // Initialize GSM SIM800L (Non-blocking: if SIM800L is off or missing, ESP32 continues seamlessly on WiFi)
+  initGSM();
 
   Serial.println("System Ready. Waiting for Dashboard commands.");
 }

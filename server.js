@@ -19,6 +19,9 @@ let deviceStore = {
   fault: 'NONE',
   countdown: 0,
   wifiStatus: 'DISCONNECTED',
+  networkType: 'WIFI', // 'WIFI' or 'GSM'
+  gsmStatus: 'DISCONNECTED', // 'READY', 'SEARCHING', 'DISCONNECTED'
+  gsmSignal: 0,
   relayStatus: false,
   waterThreshold: 1500,
   systemState: 'IDLE'
@@ -217,6 +220,9 @@ app.post('/api/device/telemetry', (req, res) => {
   if (data.relayStatus !== undefined) deviceStore.relayStatus = (data.relayStatus === 1 || data.relayStatus === true);
   if (data.waterThreshold !== undefined) deviceStore.waterThreshold = Number(data.waterThreshold);
   if (data.systemState !== undefined) deviceStore.systemState = String(data.systemState);
+  if (data.networkType !== undefined) deviceStore.networkType = String(data.networkType);
+  if (data.gsmStatus !== undefined) deviceStore.gsmStatus = String(data.gsmStatus);
+  if (data.gsmSignal !== undefined) deviceStore.gsmSignal = Number(data.gsmSignal);
 
   // Sync active motor session state with hardware relay
   if (deviceStore.relay && !activeSession) {
@@ -301,7 +307,10 @@ app.get('/api/status', (req, res) => {
     runtime: isOnline ? deviceStore.runtime : '00:00:00',
     fault: deviceStore.fault,
     countdown: deviceStore.countdown,
-    wifiStatus: isOnline ? 'CONNECTED' : 'DISCONNECTED',
+    wifiStatus: isOnline ? (deviceStore.wifiStatus || 'CONNECTED') : 'DISCONNECTED',
+    networkType: isOnline ? (deviceStore.networkType || 'WIFI') : 'OFFLINE',
+    gsmStatus: isOnline ? (deviceStore.gsmStatus || 'DISCONNECTED') : 'OFFLINE',
+    gsmSignal: isOnline ? (deviceStore.gsmSignal || 0) : 0,
     relayStatus: isOnline ? deviceStore.relayStatus : false,
     waterThreshold: deviceStore.waterThreshold,
     systemState: isOnline ? deviceStore.systemState : 'OFFLINE',

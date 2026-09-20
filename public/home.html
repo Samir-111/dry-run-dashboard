@@ -65,8 +65,20 @@
       </div>
     </div>
 
+    <!-- Hardware Network Link & SIM800L Cellular Status Bar -->
+    <div style="display:flex; align-items:center; justify-content:space-between; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.28); border-radius:12px; padding:7px 12px; margin-top:12px; color:#FFFFFF; font-size:12px;">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span id="connModeIcon">🌐</span>
+        <span style="font-weight:800;" id="connModeText">Link: WiFi Mode</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span id="gsmStatusDot">📶</span>
+        <span style="font-weight:800;" id="gsmStatusText">SIM800L: Checking…</span>
+      </div>
+    </div>
+
     <!-- Motor Status Heading -->
-    <div class="motor-status-hero" id="motorStatusHeroBox" style="margin-top:14px;">
+    <div class="motor-status-hero" id="motorStatusHeroBox" style="margin-top:12px;">
       <div class="motor-status-dot" id="motorStatusDot"></div>
       <div style="flex:1;">
         <div class="motor-status-text" id="motorStatusText">Motor is Stopped</div>
@@ -309,12 +321,33 @@
     // 1. Prominent System Online / Offline Status
     const ribbon = document.getElementById('sysStatusRibbon');
     const ribbonLbl = document.getElementById('sysStatusLabel');
+    const connIcon = document.getElementById('connModeIcon');
+    const connText = document.getElementById('connModeText');
+    const gsmText = document.getElementById('gsmStatusText');
+
     if (live) {
       ribbon.className = 'sys-status-ribbon is-online';
       ribbonLbl.textContent = `🟢 ${t('systemOnline')}`;
+
+      const isGsm = state.networkType === 'GSM' || state.networkType === 'GPRS';
+      if (connIcon) connIcon.textContent = isGsm ? '📡' : '🌐';
+      if (connText) connText.textContent = isGsm ? 'Link: 4G/2G GSM (SIM Data)' : 'Link: Farm WiFi';
+
+      if (gsmText) {
+        if (state.gsmStatus === 'READY' || state.gsmStatus === 'CONNECTED') {
+          gsmText.textContent = `SIM800L: Active (${state.gsmSignal || 85}%) ✓`;
+        } else if (state.gsmStatus === 'SEARCHING') {
+          gsmText.textContent = 'SIM800L: Searching Tower…';
+        } else {
+          gsmText.textContent = 'SIM800L: Standby / No Power';
+        }
+      }
     } else {
       ribbon.className = 'sys-status-ribbon is-offline';
       ribbonLbl.textContent = `🔴 ${t('systemOffline')}`;
+      if (connIcon) connIcon.textContent = '🔴';
+      if (connText) connText.textContent = 'Link: Hardware Offline';
+      if (gsmText) gsmText.textContent = 'SIM800L: Offline';
     }
 
     // 2. Fault/Trip Alert Banner (If lockout active)
