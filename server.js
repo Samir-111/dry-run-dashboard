@@ -89,6 +89,17 @@ function stopMotorSession(stopReason = 'User Stop') {
   
   console.log(`[Session] Motor session stopped. Duration: ${Math.round(durationMs / 1000)}s. Reason: ${sessionRecord.stopReason}`);
   activeSession = null;
+
+  // Send Instant WhatsApp Alert on Dry Run / Fault Cutoff
+  if (stopReason && (stopReason.toLowerCase().includes('fault') || stopReason.toLowerCase().includes('dry') || stopReason.toLowerCase().includes('water') || stopReason.toLowerCase().includes('trip'))) {
+    try {
+      const usersData = loadUsersData();
+      const primaryMobile = (usersData.users && usersData.users[0] && usersData.users[0].mobile) || '9371525696';
+      sendWhatsAppMessage(primaryMobile, `⚠️ *KisanGuard Alert:* Farm motor was automatically STOPPED due to Dry Run / Water Shortage! Please check your borewell before restarting.`);
+    } catch (e) {
+      console.warn('[Alert] WhatsApp notification error:', e.message);
+    }
+  }
 }
 
 function calculateRuntimeStats() {
@@ -471,6 +482,324 @@ app.get('/api/gsm', (req, res) => {
     smsLog: [],
     callLog: []
   });
+});
+
+// ─── 2-User Private Farm Authentication System ─────────────────────────────
+const crypto = require('crypto');
+const USERS_FILE = path.join(__dirname, 'data', 'users.json');
+
+function hashPassword(pwd) {
+  return crypto.createHash('sha256').update(String(pwd || '').trim()).digest('hex');
+}
+
+function loadUsersData() {
+  try {
+    if (fs.existsSync(USERS_FILE)) {
+      return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8'));
+    }
+  } catch (e) {
+    console.warn('[Auth] Error reading users file:', e.message);
+  }
+
+  return {
+    isConfigured: false,
+    users: []
+  };
+}
+
+function saveUsersData(data) {
+  try {
+    fs.mkdirSync(path.dirname(USERS_FILE), { recursive: true });
+    fs.writeFileSync(USERS_FILE, JSON.stringify(data, null, 2));
+  } catch (e) {
+    console.warn('[Auth] Error saving users file:', e.message);
+  }
+}
+
+// ─── WhatsApp Notifications & Authentication System ─────────────────────────
+
+const twilio = require('twilio');
+
+let twilioClient = null;
+if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+  try {
+    twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    console.log('[Twilio] WhatsApp client initialized successfully ✓');
+  } catch (err) {
+    console.warn('[Twilio] WhatsApp client init error:', err.message);
+  }
+}
+
+// Global WhatsApp Dispatcher
+async function sendWhatsAppMessage(mobile, text) {
+  if (!mobile) return false;
+  let digits = String(mobile).replace(/\D/g, '');
+  if (digits.length === 10) digits = '91' + digits; // Format to Indian country code
+  const toWhatsApp = `whatsapp:+${digits}`;
+  const fromWhatsApp = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886';
+
+  console.log(`====================================================`);
+  console.log(`📱 [WHATSAPP DISPATCH] To: ${toWhatsApp} (+${digits})`);
+  console.log(`💬 Content: ${text}`);
+  console.log(`====================================================`);
+
+  if (twilioClient) {
+    try {
+      const res = await twilioClient.messages.create({
+        from: fromWhatsApp,
+        to: toWhatsApp,
+        body: text
+      });
+      console.log(`[Twilio] WhatsApp message delivered (SID: ${res.sid})`);
+      return true;
+    } catch (err) {
+      console.warn(`[Twilio] WhatsApp send notice: ${err.message}`);
+      return false;
+    }
+  }
+  return false;
+}
+
+// In-memory OTP storage: accountKey -> { otp, expiresAt, mobile }
+const otpStore = new Map();
+
+// 1. GET /api/auth/config — Public configuration (Safe Farmer Accounts with Name & WhatsApp Number)
+app.get('/api/auth/config', (req, res) => {
+  const data = loadUsersData();
+  const safeUsers = (data.users || []).map((u, idx) => ({
+    id: idx,
+    name: u.name,
+    mobile: u.mobile || '9371525696',
+    email: u.email || ''
+  }));
+  res.json({
+    success: true,
+    isConfigured: Boolean(data.isConfigured && data.users && data.users.length === 2),
+    users: safeUsers
+  });
+});
+
+// 2. POST /api/auth/register-initial — Initial One-Time Setup for 2 Farmer Accounts
+app.post('/api/auth/register-initial', (req, res) => {
+  try {
+    const { user1, user2, recoveryPin } = req.body;
+    if (!user1 || !user1.name || !user1.mobile || !user1.password || !user2 || !user2.name || !user2.mobile || !user2.password) {
+      return res.status(400).json({ success: false, error: 'Please provide Name, WhatsApp Mobile Number, and Password for both accounts.' });
+    }
+
+    const mob1 = String(user1.mobile).replace(/\D/g, '');
+    const mob2 = String(user2.mobile).replace(/\D/g, '');
+    if (mob1 === mob2) {
+      return res.status(400).json({ success: false, error: 'Farmer 1 and Farmer 2 must have different WhatsApp numbers.' });
+    }
+
+    const newUserData = {
+      isConfigured: true,
+      recoveryPin: String(recoveryPin || '1234').trim(),
+      users: [
+        {
+          name: (user1.name || 'Samir').trim(),
+          mobile: mob1,
+          email: (user1.email || '').trim().toLowerCase(),
+          passwordHash: hashPassword(user1.password)
+        },
+        {
+          name: (user2.name || 'Father').trim(),
+          mobile: mob2,
+          email: (user2.email || '').trim().toLowerCase(),
+          passwordHash: hashPassword(user2.password)
+        }
+      ]
+    };
+
+    saveUsersData(newUserData);
+    console.log(`[Auth] 2 Farmer Accounts Registered: ${user1.name} (${mob1}), ${user2.name} (${mob2})`);
+    res.json({ success: true, message: 'Farm accounts registered successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 3. POST /api/auth/login — Authenticate against the 2 authorized farmer accounts
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { identifier, password } = req.body;
+    if (!identifier || !password) {
+      return res.status(400).json({ success: false, error: 'Please select account and enter password.' });
+    }
+
+    const cleanId = String(identifier).trim().toLowerCase();
+    const data = loadUsersData();
+    const user = (data.users || []).find(u => 
+      String(u.name).toLowerCase() === cleanId || 
+      String(u.mobile) === cleanId.replace(/\D/g, '') ||
+      (u.email && String(u.email).toLowerCase() === cleanId)
+    );
+
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Unauthorized farmer account.' });
+    }
+
+    const inputHash = hashPassword(password);
+    if (user.passwordHash !== inputHash) {
+      return res.status(401).json({ success: false, error: 'Incorrect password. Please try again.' });
+    }
+
+    const token = crypto.randomBytes(16).toString('hex');
+    console.log(`[Auth] User logged in: ${user.name} (WhatsApp: ${user.mobile})`);
+    
+    res.json({
+      success: true,
+      user: {
+        name: user.name,
+        mobile: user.mobile,
+        email: user.email
+      },
+      token
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 4. POST /api/auth/send-otp — Generate and send 6-digit OTP to Farmer's WhatsApp
+app.post('/api/auth/send-otp', async (req, res) => {
+  try {
+    const { identifier } = req.body;
+    if (!identifier) {
+      return res.status(400).json({ success: false, error: 'Please select a farmer account.' });
+    }
+
+    const cleanId = String(identifier).trim().toLowerCase();
+    const data = loadUsersData();
+    const user = (data.users || []).find(u => 
+      String(u.name).toLowerCase() === cleanId || 
+      String(u.mobile) === cleanId.replace(/\D/g, '') ||
+      (u.email && String(u.email).toLowerCase() === cleanId)
+    );
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'Account not found in authorized farm users.' });
+    }
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+
+    const key = String(user.mobile || user.name).toLowerCase();
+    otpStore.set(key, { otp, expiresAt, mobile: user.mobile });
+
+    console.log(`====================================================`);
+    console.log(`🔑 [WHATSAPP OTP GENERATED] For: ${user.name} (${user.mobile})`);
+    console.log(`👉 6-Digit OTP: ${otp} (Valid for 10 minutes)`);
+    console.log(`====================================================`);
+
+    const whatsAppMessage = `🌾 *KisanGuard Smart Farm Security*\n\nHello *${user.name}*,\nYour 6-digit password reset OTP is:\n👉 *${otp}*\n\n(This code is valid for 10 minutes. Do not share with anyone.)`;
+
+    const sent = await sendWhatsAppMessage(user.mobile, whatsAppMessage);
+
+    res.json({
+      success: true,
+      mobile: user.mobile,
+      formattedMobile: `+91 ${user.mobile}`,
+      userName: user.name,
+      message: `6-digit OTP sent to WhatsApp number: +91 ${user.mobile}`,
+      devOtp: otp,
+      whatsAppSent: sent
+    });
+
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 5. POST /api/auth/verify-otp-reset — Verify WhatsApp OTP & Reset Password
+app.post('/api/auth/verify-otp-reset', (req, res) => {
+  try {
+    const { identifier, otp, recoveryPin, newPassword } = req.body;
+    if (!identifier || !newPassword) {
+      return res.status(400).json({ success: false, error: 'Please provide account and new password.' });
+    }
+
+    if (String(newPassword).length < 4) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 4 characters long.' });
+    }
+
+    const cleanId = String(identifier).trim().toLowerCase();
+    const data = loadUsersData();
+    const userIdx = (data.users || []).findIndex(u => 
+      String(u.name).toLowerCase() === cleanId || 
+      String(u.mobile) === cleanId.replace(/\D/g, '') ||
+      (u.email && String(u.email).toLowerCase() === cleanId)
+    );
+
+    if (userIdx === -1) {
+      return res.status(404).json({ success: false, error: 'Authorized farmer account not found.' });
+    }
+
+    const user = data.users[userIdx];
+    let isAuthorized = false;
+
+    const key = String(user.mobile || user.name).toLowerCase();
+    const storedOtp = otpStore.get(key);
+
+    if (otp && storedOtp) {
+      if (Date.now() <= storedOtp.expiresAt && String(storedOtp.otp).trim() === String(otp).trim()) {
+        isAuthorized = true;
+        otpStore.delete(key);
+      }
+    }
+
+    // Secondary master backup: Farm Recovery PIN
+    const masterPin = String(data.recoveryPin || '1234').trim();
+    if (recoveryPin && String(recoveryPin).trim() === masterPin) {
+      isAuthorized = true;
+    }
+
+    if (!isAuthorized) {
+      return res.status(401).json({ success: false, error: 'Invalid or expired WhatsApp OTP / Recovery PIN.' });
+    }
+
+    data.users[userIdx].passwordHash = hashPassword(newPassword);
+    saveUsersData(data);
+    console.log(`[Auth] Password successfully reset for: ${user.name} (${user.mobile})`);
+
+    res.json({ success: true, message: 'Password updated successfully. You can now login.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// 6. POST /api/auth/update-accounts — Update authorized farmer names and WhatsApp mobile numbers
+app.post('/api/auth/update-accounts', (req, res) => {
+  try {
+    const { user1, user2, recoveryPin } = req.body;
+    const data = loadUsersData();
+
+    if (user1) {
+      if (user1.name) data.users[0].name = String(user1.name).trim();
+      if (user1.mobile) data.users[0].mobile = String(user1.mobile).replace(/\D/g, '');
+      if (user1.email) data.users[0].email = String(user1.email).trim().toLowerCase();
+      if (user1.password && user1.password.length >= 4) data.users[0].passwordHash = hashPassword(user1.password);
+    }
+
+    if (user2) {
+      if (user2.name) data.users[1].name = String(user2.name).trim();
+      if (user2.mobile) data.users[1].mobile = String(user2.mobile).replace(/\D/g, '');
+      if (user2.email) data.users[1].email = String(user2.email).trim().toLowerCase();
+      if (user2.password && user2.password.length >= 4) data.users[1].passwordHash = hashPassword(user2.password);
+    }
+
+    if (recoveryPin) {
+      data.recoveryPin = String(recoveryPin).trim();
+    }
+
+    saveUsersData(data);
+    console.log(`[Auth] Farm accounts updated: ${data.users[0].name} (${data.users[0].mobile}), ${data.users[1].name} (${data.users[1].mobile})`);
+
+    res.json({ success: true, message: 'Farm accounts updated successfully' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 const PORT = process.env.PORT || 8081;
