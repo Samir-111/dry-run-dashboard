@@ -3,198 +3,306 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#2E7D5B">
-<meta name="description" content="Pump Protector — Telemetry data and sensor readings from your ESP32 borewell system.">
-<title>Telemetry — Pump Protector</title>
+<meta name="theme-color" content="#1B5E20">
+<meta name="description" content="KisanGuard — Telemetry Diagnostics & 30-Day Motor History.">
+<title>History — KisanGuard</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div id="app">
 
-  <div class="app-header">
-    <div class="title-block">
-      <h2>Telemetry Data</h2>
-      <p>
-        <span class="conn-dot" id="dashConnDot"></span>
-        <span id="dashConnText">Connecting to Blynk…</span>
-      </p>
+<!-- Top Header -->
+<header class="top-header">
+  <div class="top-header-inner">
+    <a href="home.html" class="top-brand">
+      <div class="top-brand-icon">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg>
+      </div>
+      <span class="top-brand-name">History & Telemetry</span>
+    </a>
+
+    <div class="desktop-nav" id="desktopNav"></div>
+
+    <div class="top-actions">
+      <div class="conn-badge">
+        <span class="conn-dot" id="dashBeaconDot"></span>
+        <span id="dashConnLabel">Connecting…</span>
+      </div>
+      <button class="btn-header" onclick="doLogout()">Logout</button>
+    </div>
+  </div>
+</header>
+
+<!-- Page Content -->
+<main class="page-container">
+
+  <!-- Live Telemetry & Motor ON Stats Grid -->
+  <div class="stat-grid">
+    <div class="stat-tile">
+      <div class="stat-tile-header">
+        <span class="stat-tile-label">Active Session</span>
+        <div class="stat-tile-icon" style="background:#FFF8E1; color:#F57F17;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+        </div>
+      </div>
+      <div class="stat-tile-value" id="dashActiveSessionVal" style="font-size:17px; color:#2E7D32;">00:00:00</div>
+      <div class="stat-tile-hint">Active motor duration</div>
+    </div>
+
+    <div class="stat-tile">
+      <div class="stat-tile-header">
+        <span class="stat-tile-label">Today Total ON</span>
+        <div class="stat-tile-icon" style="background:#E8F5E9; color:#2E7D32;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+        </div>
+      </div>
+      <div class="stat-tile-value" id="dashTodayONVal" style="font-size:17px;">0m</div>
+      <div class="stat-tile-hint">Accumulated today</div>
+    </div>
+
+    <div class="stat-tile">
+      <div class="stat-tile-header">
+        <span class="stat-tile-label">Conductivity</span>
+        <div class="stat-tile-icon" style="background:#E1F5FE; color:#0288D1;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+        </div>
+      </div>
+      <div class="stat-tile-value" id="dashWaterRaw">— ADC</div>
+      <div class="stat-tile-hint" id="dashWaterStatus">Checking…</div>
+    </div>
+
+    <div class="stat-tile">
+      <div class="stat-tile-header">
+        <span class="stat-tile-label">WiFi / Server</span>
+        <div class="stat-tile-icon" style="background:#E8F5E9; color:#2E7D32;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12.55a11 11 0 0 1 14.08 0M1.42 9a16 16 0 0 1 21.16 0M8.53 16.11a6 6 0 0 1 6.95 0M12 20h.01"/></svg>
+        </div>
+      </div>
+      <div class="stat-tile-value" id="dashWifiStatus">—</div>
+      <div class="stat-tile-hint">ESP32 IoT Link</div>
     </div>
   </div>
 
-  <div class="content">
-
-    <!-- System State -->
-    <div class="card">
-      <div class="row-between">
-        <span class="label-sm">System Mode / State</span>
-        <span class="status-pill pill-gray" id="dashStatePill">
-          <span class="dot"></span><span>Connecting…</span>
-        </span>
-      </div>
-    </div>
-
-    <!-- Fault Banner -->
-    <div class="card" id="dashFaultCard"
-      style="display:none; background:var(--danger-light); border-color:rgba(239,83,80,0.3); border-left:4px solid var(--danger);">
-      <div class="alert-card">
-        <div class="alert-icon red">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-          </svg>
+  <!-- Detailed Motor Sessions Log Card -->
+  <div class="card">
+    <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+      <div class="card-title" style="margin-bottom:0;">
+        <div class="card-title-icon" style="background:#FFF8E1; color:#F57F17;">
+          <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
         </div>
-        <div class="alert-body">
-          <h3>Fault Triggered</h3>
-          <p id="dashFaultText">—</p>
-        </div>
+        Detailed Motor ON Sessions History Log
       </div>
+      <a href="/api/export-csv" download class="btn btn-green" style="padding:6px 14px; font-size:12px; gap:6px;">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+        Export Sessions (CSV)
+      </a>
     </div>
 
-    <!-- Pump + Water Status (large metric cards) -->
-    <div class="quick-grid">
-      <div class="card" style="display:flex; flex-direction:column; gap:8px; border-left:3px solid var(--primary);">
-        <span class="label-sm">Pump Relay</span>
-        <span class="value-md" id="dashPump" style="color:var(--primary); font-size:15px;">—</span>
-      </div>
-      <div class="card" style="display:flex; flex-direction:column; gap:8px; border-left:3px solid var(--water);">
-        <span class="label-sm">Water Presence</span>
-        <span class="value-md" id="dashWater" style="color:var(--green-dark); font-size:15px;">—</span>
-      </div>
+    <div style="overflow-x:auto;">
+      <table class="clean-table" id="sessionsTable">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Start Time</th>
+            <th>Stop Time</th>
+            <th>Duration (HH:MM:SS)</th>
+            <th>Stop Reason</th>
+          </tr>
+        </thead>
+        <tbody id="sessionsTableBody">
+          <tr>
+            <td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">Loading motor run sessions…</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
+  </div>
 
-    <!-- Operational Timers -->
-    <div class="card">
-      <p class="label-sm" style="display:block; margin-bottom:14px;">⏱ Operational Timers</p>
-      <div class="row-between">
-        <span class="label-sm">Accumulated Runtime</span>
-        <span class="value-md" id="dashRuntime">—</span>
-      </div>
-      <div class="divider"></div>
-      <div class="row-between">
-        <span class="label-sm">Auto-Reset Countdown</span>
-        <span class="value-md" id="dashCountdown">—</span>
-      </div>
-    </div>
-
-    <!-- Sensor Diagnostics -->
-    <div class="card">
-      <p class="label-sm" style="display:block; margin-bottom:14px;">🔬 Sensor Diagnostics</p>
-      <div class="row-between">
-        <span class="label-sm">Protection Status</span>
-        <span class="value-md" id="dashProtection">—</span>
-      </div>
-      <div class="divider"></div>
-      <div class="row-between">
-        <span class="label-sm">Relay GPIO Confirmed</span>
-        <span class="value-md" id="dashRelay">—</span>
-      </div>
-      <div class="divider"></div>
-      <div class="row-between">
-        <span class="label-sm">Water Sensor (ADC raw)</span>
-        <span class="value-md" id="dashWaterRaw">—</span>
-      </div>
-      <div class="divider"></div>
-      <div class="row-between">
-        <span class="label-sm">Dry Threshold Setting</span>
-        <span class="value-md" id="dashThreshold">1500 (default)</span>
-      </div>
-      <div class="divider"></div>
-      <div class="row-between">
-        <span class="label-sm">ESP32 Wi-Fi Status</span>
-        <span class="value-md" id="dashWifi">—</span>
-      </div>
-    </div>
+  <div class="grid-two-col">
 
     <!-- Threshold Calibration -->
     <div class="card">
-      <p class="label-sm" style="display:block; margin-bottom:6px;">⚙️ Water Threshold Calibration (V10)</p>
-      <p style="font-size:12.5px; color:var(--muted); margin:0 0 14px; line-height:1.5;">
-        Set the analog ADC threshold for dry-run detection. Default: <strong>1500</strong>. Higher value = more sensitive detection.
+      <div class="card-title" style="font-size:14px;">
+        <div class="card-title-icon" style="background:#FFF8E1; color:#F57F17;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+        </div>
+        Water Threshold Calibration
+      </div>
+      <p style="font-size:13px; color:var(--text-sec); margin-bottom:12px;">
+        Adjust the ADC threshold for dry-run detection. Current: <strong id="dashThresholdVal">1500</strong>.
       </p>
       <div style="display:flex; gap:10px;">
-        <input type="number" id="inputThreshold" placeholder="e.g. 1500" min="0" max="4095"
-          style="flex:1; padding:11px 14px; border-radius:12px; border:1.5px solid var(--border);
-                 font-family:'JetBrains Mono',monospace; font-size:14px; font-weight:600;
-                 background:var(--bg); color:var(--text); outline:none; transition:border-color 0.2s;"
-          onfocus="this.style.borderColor='var(--primary)'"
-          onblur="this.style.borderColor='var(--border)'">
-        <button class="btn btn-primary" id="btnSetThreshold"
-          style="width:auto; padding:11px 20px; font-size:13.5px;"
-          onclick="handleSetThreshold()">Update</button>
+        <input type="number" id="inputThreshold" class="input" placeholder="e.g. 1500" min="0" max="4095" style="flex:1;">
+        <button class="btn btn-green" id="btnSetThreshold" onclick="handleSetThreshold()">Set</button>
       </div>
     </div>
 
-  </div><!-- .content -->
+    <!-- 30-Day History Chart -->
+    <div class="card" id="historySection">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+        <div class="card-title" style="margin-bottom:0; font-size:14px;">
+          <div class="card-title-icon" style="background:#E8F5E9; color:#2E7D32;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          </div>
+          30-Day Daily Motor Runtime
+        </div>
+        <select id="historyDaysSelect" onchange="loadHistoryData()" class="input" style="width:auto; padding:4px 8px; font-size:11.5px;">
+          <option value="7">7 Days</option>
+          <option value="14">14 Days</option>
+          <option value="30" selected>30 Days</option>
+        </select>
+      </div>
 
-  <div id="bottomNav"></div>
-</div><!-- #app -->
+      <div id="historyContent">
+        <div style="text-align:center; padding:24px; color:var(--text-muted); font-size:13px;">
+          Loading telemetry history…
+        </div>
+      </div>
+    </div>
 
-<script src="js/app.js?v=7"></script>
+  </div>
+
+</main>
+
+<!-- Bottom Navigation Container -->
+<div id="bottomNav"></div>
+
+<script src="js/app.js?v=15"></script>
 <script>
   requireAuth();
   injectNav('dashboard');
 
   startPolling((state, reachable, live) => {
-    setConnDot('dashConnDot', live);
-    document.getElementById('dashConnText').textContent = connLabel(reachable, live);
+    const beacon = document.getElementById('dashBeaconDot');
+    const label  = document.getElementById('dashConnLabel');
+    if (live) { beacon.className = 'conn-dot live'; label.textContent = 'Connected'; }
+    else { beacon.className = reachable ? 'conn-dot' : 'conn-dot down'; label.textContent = reachable ? 'Standby' : 'Offline'; }
 
-    const hasFault = live && state.fault && String(state.fault).toUpperCase() !== 'NONE';
-    const isRunning = pumpIsRunning(state);
+    document.getElementById('dashWifiStatus').textContent = live ? 'Connected' : (reachable ? 'Standby' : 'Offline');
 
-    // System State pill
-    const sysState = live ? (state.systemState || (isRunning ? 'RUNNING' : 'OFF')) : 'Offline';
-    setPill('dashStatePill', sysState, stateColor(live ? sysState : null, live ? state.fault : null));
+    const raw = state.waterRaw !== undefined && state.waterRaw !== null ? state.waterRaw : '—';
+    document.getElementById('dashWaterRaw').textContent = `${raw} ADC`;
 
-    // Fault Card
-    const faultCard = document.getElementById('dashFaultCard');
-    if (hasFault) {
-      faultCard.style.display = 'block';
-      document.getElementById('dashFaultText').textContent = `${state.fault} — Check water source & reset pump.`;
+    const waterPresent = live ? isWaterPresent(state.waterStatus, state.waterRaw) : null;
+    if (waterPresent === true) {
+      document.getElementById('dashWaterStatus').textContent = 'Water Present ✓';
+      document.getElementById('dashWaterStatus').style.color = '#2E7D32';
+    } else if (waterPresent === false) {
+      document.getElementById('dashWaterStatus').textContent = 'Water Absent ✗';
+      document.getElementById('dashWaterStatus').style.color = '#D32F2F';
     } else {
-      faultCard.style.display = 'none';
+      document.getElementById('dashWaterStatus').textContent = 'Checking…';
+      document.getElementById('dashWaterStatus').style.color = '';
     }
 
-    // Pump & Water status
-    if (!live) {
-      document.getElementById('dashPump').textContent  = '—';
-      document.getElementById('dashWater').textContent = '—';
-    } else {
-      document.getElementById('dashPump').textContent = state.pumpStatus || (isRunning ? 'ON / RUNNING' : 'OFF / STOPPED');
+    const running = pumpIsRunning(state);
 
-      const waterPresent = isWaterPresent(state.waterStatus, state.waterRaw);
-      document.getElementById('dashWater').textContent  = waterPresent === null ? '—' : (waterPresent ? 'PRESENT (OK)' : 'ABSENT (DRY)');
-      document.getElementById('dashWater').style.color  = waterPresent ? 'var(--green-dark)' : 'var(--red-dark)';
-    }
+    // Motor Runtime Stats
+    const rStats = state.runtimeStats || {};
+    document.getElementById('dashActiveSessionVal').textContent = live && running ? formatDurationMs(rStats.currentSessionMs || 0, true) : '00:00:00';
+    document.getElementById('dashTodayONVal').textContent = live ? formatDurationMs(rStats.todayTotalMs || 0, false) : '0m';
 
-    // Timers
-    document.getElementById('dashRuntime').textContent   = live && state.runtime    ? state.runtime           : (live ? '00:00:00' : '—');
-    document.getElementById('dashCountdown').textContent = live && state.countdown > 0 ? `${state.countdown}s remaining` : (live ? 'Inactive (0s)' : '—');
-
-    // Diagnostics
-    document.getElementById('dashProtection').textContent = live && state.protectionStatus ? state.protectionStatus : (live ? 'NORMAL' : '—');
-    document.getElementById('dashRelay').textContent      = live && state.relayStatus !== null ? (state.relayStatus ? 'ACTIVE (HIGH)' : 'INACTIVE (LOW)') : '—';
-    document.getElementById('dashWaterRaw').textContent   = live && state.waterRaw !== null   ? `${state.waterRaw} ADC` : '—';
-    document.getElementById('dashThreshold').textContent  = live && state.waterThreshold !== null ? `${state.waterThreshold}` : '1500 (default)';
-    document.getElementById('dashWifi').textContent       = live && state.wifiStatus ? state.wifiStatus : (live ? 'CONNECTED' : '—');
+    document.getElementById('dashThresholdVal').textContent = `${state.waterThreshold || 1500}`;
   });
 
+  async function renderSessionsTable() {
+    const tbody = document.getElementById('sessionsTableBody');
+    const data = await fetchSessions(50);
+    if (!data || !data.sessions || data.sessions.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:24px; color:var(--text-muted);">No recorded motor sessions yet. Turn on the motor to start logging sessions!</td></tr>';
+      return;
+    }
+
+    let rows = '';
+    data.sessions.forEach(s => {
+      const date = new Date(s.startTime).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+      const startTime = new Date(s.startTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const stopTime = new Date(s.stopTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      const durationFormatted = formatDurationMs(s.durationMs || 0, true);
+      const reason = s.stopReason || 'User Stop';
+
+      let reasonClass = 'user-stop';
+      if (reason.includes('Timer')) reasonClass = 'timer-off';
+      else if (reason.includes('Fault') || reason.includes('Lockout') || reason.includes('Dry')) reasonClass = 'fault-trip';
+
+      rows += `
+        <tr>
+          <td style="font-weight:700; color:var(--text-dark);">${date}</td>
+          <td>${startTime}</td>
+          <td>${stopTime}</td>
+          <td style="font-family:'Nunito',monospace; font-weight:800; color:#2E7D32;">${durationFormatted}</td>
+          <td><span class="badge-reason ${reasonClass}">${reason}</span></td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = rows;
+  }
+
+  renderSessionsTable();
+  setInterval(renderSessionsTable, 5000);
+
   async function handleSetThreshold() {
-    const input = document.getElementById('inputThreshold');
-    const val   = Number(input.value.trim());
-    if (isNaN(val) || val < 0) { toast('Please enter a valid positive number', 'error'); return; }
-    const btn = document.getElementById('btnSetThreshold');
-    btn.disabled = true; btn.textContent = 'Saving…';
+    const val = parseInt(document.getElementById('inputThreshold').value);
+    if (isNaN(val) || val < 0 || val > 4095) { toast('Enter 0-4095', 'error'); return; }
     try {
       await postThreshold(val);
-      toast(`Threshold updated to ${val}`, 'success');
-      input.value = '';
+      toast(`Threshold set to ${val} ADC ✓`, 'success');
+    } catch (err) { toast(err.message || 'Failed', 'error'); }
+  }
+
+  async function loadHistoryData() {
+    const days = parseInt(document.getElementById('historyDaysSelect').value) || 30;
+    const container = document.getElementById('historyContent');
+    container.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-muted); font-size:13px;">Loading…</div>';
+
+    try {
+      const resp = await fetch('/api/history');
+      if (!resp.ok) throw new Error('Failed');
+      const data = await resp.json();
+
+      const historyList = data.history || [];
+      if (!historyList.length) {
+        container.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-muted); font-size:13px;">No history recorded yet.</div>';
+        return;
+      }
+
+      // Group telemetry by date to calculate daily runtime minutes
+      const daysMap = {};
+      historyList.forEach(h => {
+        const dateStr = new Date(h.ts).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+        if (!daysMap[dateStr]) daysMap[dateStr] = 0;
+        if (h.relay === 1 || h.pumpStatus === 'RUNNING') {
+          daysMap[dateStr] += 1.5 / 60; // 1.5 seconds per sample
+        }
+      });
+
+      const dates = Object.keys(daysMap).slice(-days);
+      let maxMin = 1;
+      dates.forEach(d => { if (daysMap[d] > maxMin) maxMin = daysMap[d]; });
+
+      let html = '';
+      dates.forEach(date => {
+        const mins = Math.round(daysMap[date]);
+        const pct = Math.min(100, Math.round((mins / maxMin) * 100));
+        const hrs = Math.floor(mins / 60);
+        const rm  = mins % 60;
+        const label = hrs > 0 ? `${hrs}h ${rm}m` : `${mins}m`;
+
+        html += `<div class="history-bar-wrap">
+          <span class="history-date">${date}</span>
+          <div class="history-track"><div class="history-fill" style="width:${pct}%"></div></div>
+          <span class="history-mins">${label}</span>
+        </div>`;
+      });
+
+      container.innerHTML = html;
     } catch (err) {
-      toast(err.message || 'Failed to update threshold', 'error');
-    } finally {
-      btn.disabled = false; btn.textContent = 'Update';
+      container.innerHTML = '<div style="text-align:center; padding:24px; color:var(--text-muted); font-size:13px;">Could not load history.</div>';
     }
   }
+
+  loadHistoryData();
 </script>
 </body>
 </html>

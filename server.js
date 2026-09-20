@@ -31,6 +31,158 @@ let pendingCommands = {
   reset: false       // true if reset requested
 };
 
+// ─── Motor Session & Runtime Tracking Store ───────────────────────────────
+const SESSIONS_FILE = path.join(__dirname, 'data', 'sessions.json');
+
+function loadSessions() {
+  try {
+    return JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+  } catch {
+    return [];
+  }
+}
+
+function saveSessions(list) {
+  try {
+    fs.mkdirSync(path.dirname(SESSIONS_FILE), { recursive: true });
+    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(list, null, 2));
+  } catch (err) {
+    console.warn('[Sessions] Write error:', err.message);
+  }
+}
+
+let activeSession = null; // { id, startTime, timerMinutes, timerEndsAt }
+
+function startMotorSession(timerMinutes = null) {
+  const now = Date.now();
+  let timerEndsAt = null;
+  if (timerMinutes && Number(timerMinutes) > 0) {
+    timerEndsAt = now + Number(timerMinutes) * 60 * 1000;
+  }
+  activeSession = {
+    id: 'sess_' + now,
+    startTime: now,
+    timerMinutes: timerMinutes ? Number(timerMinutes) : null,
+    timerEndsAt
+  };
+  console.log(`[Session] Motor session started. Timer: ${timerMinutes ? timerMinutes + ' mins' : 'None'}`);
+}
+
+function stopMotorSession(stopReason = 'User Stop') {
+  if (!activeSession) return;
+  const now = Date.now();
+  const durationMs = Math.max(0, now - activeSession.startTime);
+  const sessionRecord = {
+    id: activeSession.id,
+    startTime: activeSession.startTime,
+    stopTime: now,
+    durationMs,
+    stopReason: stopReason || 'User Stop',
+    dateStr: new Date(activeSession.startTime).toLocaleDateString('en-IN')
+  };
+  
+  let sessions = loadSessions();
+  sessions.unshift(sessionRecord);
+  // Keep last 1000 sessions
+  if (sessions.length > 1000) sessions = sessions.slice(0, 1000);
+  saveSessions(sessions);
+  
+  console.log(`[Session] Motor session stopped. Duration: ${Math.round(durationMs / 1000)}s. Reason: ${sessionRecord.stopReason}`);
+  activeSession = null;
+}
+
+function calculateRuntimeStats() {
+  const now = Date.now();
+  const todayStart = new Date().setHours(0, 0, 0, 0);
+  const thirtyDaysAgo = now - THIRTY_DAYS_MS;
+  const sessions = loadSessions();
+
+  let todayTotalMs = 0;
+  let monthTotalMs = 0;
+
+  for (const s of sessions) {
+    if (s.startTime >= thirtyDaysAgo) {
+      monthTotalMs += s.durationMs || 0;
+      if (s.startTime >= todayStart) {
+        todayTotalMs += s.durationMs || 0;
+      }
+    }
+  }
+
+  let currentSessionMs = 0;
+  if (activeSession) {
+    currentSessionMs = now - activeSession.startTime;
+    todayTotalMs += currentSessionMs;
+    monthTotalMs += currentSessionMs;
+  }
+
+  return { currentSessionMs, todayTotalMs, monthTotalMs };
+}
+
+// Check auto-off timer
+setInterval(() => {
+  if (activeSession && activeSession.timerEndsAt) {
+    const remaining = activeSession.timerEndsAt - Date.now();
+    if (remaining <= 0) {
+      console.log('[Timer] Auto-off irrigation timer expired! Stopping motor.');
+      pendingCommands.relay = 0;
+      deviceStore.relay = false;
+      deviceStore.pumpStatus = 'OFF';
+      deviceStore.systemState = 'OFF';
+      stopMotorSession('Auto-Off Timer Expired');
+    }
+  }
+}, 1000);
+
+// ─── 1-Month Rolling History ───────────────────────────────────────────────
+
+const HISTORY_FILE = path.join(__dirname, 'data', 'history.json');
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
+// Max entries: 1 per 1.5s for 30 days ≈ 1,728,000 — cap at 50,000 for practicality
+const MAX_HISTORY_ENTRIES = 50000;
+
+function loadHistory() {
+  try {
+    return JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8'));
+  } catch {
+    return [];
+  }
+}
+
+function saveHistory(list) {
+  fs.mkdirSync(path.dirname(HISTORY_FILE), { recursive: true });
+  fs.writeFileSync(HISTORY_FILE, JSON.stringify(list));
+}
+
+function appendHistory(data) {
+  const now = Date.now();
+  const cutoff = now - THIRTY_DAYS_MS;
+
+  let history = loadHistory();
+
+  // Append new record
+  history.push({
+    ts: now,
+    pumpStatus: data.pumpStatus || 'OFF',
+    waterStatus: data.waterStatus || 'ABSENT',
+    waterRaw: data.waterRaw || 0,
+    fault: data.fault || 'NONE',
+    runtime: data.runtime || '00:00:00',
+    systemState: data.systemState || 'IDLE',
+    relay: data.relay || 0
+  });
+
+  // Prune entries older than 30 days (rolling overwrite)
+  history = history.filter(e => e.ts >= cutoff);
+
+  // Also cap at max entries (remove oldest first)
+  if (history.length > MAX_HISTORY_ENTRIES) {
+    history = history.slice(history.length - MAX_HISTORY_ENTRIES);
+  }
+
+  saveHistory(history);
+}
+
 // ─── ESP32 Direct Communication Endpoints ─────────────────────────────────
 
 // ESP32 sends telemetry JSON here every 1.5 seconds
@@ -40,6 +192,8 @@ app.post('/api/device/telemetry', (req, res) => {
   
   deviceStore.lastSeen = now;
   deviceStore.wifiStatus = 'CONNECTED';
+
+  const prevRelay = deviceStore.relay;
 
   if (data.relay !== undefined) deviceStore.relay = (data.relay === 1 || data.relay === true || data.relay === '1');
   if (data.pumpStatus !== undefined) deviceStore.pumpStatus = String(data.pumpStatus);
@@ -52,6 +206,29 @@ app.post('/api/device/telemetry', (req, res) => {
   if (data.relayStatus !== undefined) deviceStore.relayStatus = (data.relayStatus === 1 || data.relayStatus === true);
   if (data.waterThreshold !== undefined) deviceStore.waterThreshold = Number(data.waterThreshold);
   if (data.systemState !== undefined) deviceStore.systemState = String(data.systemState);
+
+  // Sync active motor session state with hardware relay
+  if (deviceStore.relay && !activeSession) {
+    startMotorSession();
+  } else if (!deviceStore.relay && activeSession) {
+    const reason = deviceStore.fault && deviceStore.fault !== 'NONE' ? `Fault: ${deviceStore.fault}` : 'Hardware Stop';
+    stopMotorSession(reason);
+  }
+
+  // Append snapshot to 1-month rolling history
+  try {
+    appendHistory({
+      pumpStatus: deviceStore.pumpStatus,
+      waterStatus: deviceStore.waterStatus,
+      waterRaw: deviceStore.waterRaw,
+      fault: deviceStore.fault,
+      runtime: deviceStore.runtime,
+      systemState: deviceStore.systemState,
+      relay: deviceStore.relay ? 1 : 0
+    });
+  } catch (histErr) {
+    console.warn('[History] Write error:', histErr.message);
+  }
 
   // Send pending commands back to ESP32 in response
   const commandsToReturn = {
@@ -82,8 +259,19 @@ app.post('/api/device/telemetry', (req, res) => {
 
 app.get('/api/status', (req, res) => {
   const now = Date.now();
-  // Device is online if it synced within last 12 seconds
-  const online = (now - deviceStore.lastSeen) < 12000;
+  // Keep lastSeen fresh if motor is actively running via web command
+  if (deviceStore.relay || activeSession) {
+    deviceStore.lastSeen = now;
+  }
+  
+  // Device is online if it synced within last 12 seconds or motor is running
+  const online = (now - deviceStore.lastSeen) < 12000 || deviceStore.relay;
+  const runtimeStats = calculateRuntimeStats();
+
+  let autoOffRemainingMs = 0;
+  if (activeSession && activeSession.timerEndsAt) {
+    autoOffRemainingMs = Math.max(0, activeSession.timerEndsAt - now);
+  }
 
   res.json({
     online,
@@ -99,6 +287,14 @@ app.get('/api/status', (req, res) => {
     relayStatus: deviceStore.relayStatus,
     waterThreshold: deviceStore.waterThreshold,
     systemState: deviceStore.systemState,
+    runtimeStats: {
+      currentSessionMs: runtimeStats.currentSessionMs,
+      todayTotalMs: runtimeStats.todayTotalMs,
+      monthTotalMs: runtimeStats.monthTotalMs,
+      activeSessionStart: activeSession ? activeSession.startTime : null,
+      autoOffTimerMinutes: activeSession ? activeSession.timerMinutes : null,
+      autoOffRemainingMs
+    },
     device: {
       mode: 'DIRECT_IOT_SERVER',
       cachedAt: new Date().toISOString(),
@@ -107,24 +303,83 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// ─── History & Session APIs ────────────────────────────────────────────────
+
+// GET /api/history?days=7 — returns records for last N days (max 30)
+app.get('/api/history', (req, res) => {
+  try {
+    const days = Math.min(30, Math.max(1, parseInt(req.query.days) || 30));
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+    const history = loadHistory().filter(e => e.ts >= cutoff);
+    const sessions = loadSessions().filter(s => s.startTime >= cutoff);
+    res.json({ success: true, count: history.length, days, history, sessions });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/sessions — returns detailed motor run sessions log
+app.get('/api/sessions', (req, res) => {
+  try {
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit) || 100));
+    const sessions = loadSessions().slice(0, limit);
+    const stats = calculateRuntimeStats();
+    res.json({ success: true, count: sessions.length, stats, sessions, activeSession });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/export-csv — Download telemetry & sessions in CSV format
+app.get('/api/export-csv', (req, res) => {
+  try {
+    const sessions = loadSessions();
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="KisanGuard_Motor_Sessions.csv"');
+
+    let csv = 'Session ID,Start Time,Stop Time,Duration (Seconds),Duration (HH:MM:SS),Stop Reason\n';
+    for (const s of sessions) {
+      const start = new Date(s.startTime).toLocaleString('en-IN');
+      const stop = new Date(s.stopTime).toLocaleString('en-IN');
+      const secs = Math.round((s.durationMs || 0) / 1000);
+      const h = String(Math.floor(secs / 3600)).padStart(2, '0');
+      const m = String(Math.floor((secs % 3600) / 60)).padStart(2, '0');
+      const sec = String(secs % 60).padStart(2, '0');
+      const formatted = `${h}:${m}:${sec}`;
+      csv += `"${s.id}","${start}","${stop}",${secs},"${formatted}","${s.stopReason || 'User Stop'}"\n`;
+    }
+    res.send(csv);
+  } catch (err) {
+    res.status(500).send('Error generating CSV: ' + err.message);
+  }
+});
+
 // Farmer's pump on/off request from Dashboard
 app.post('/api/motor', (req, res) => {
   try {
     const targetState = req.body.on ? 1 : 0;
+    const timerMinutes = req.body.timerMinutes ? Number(req.body.timerMinutes) : null;
+    
     pendingCommands.relay = targetState;
-    // Optimistic UI update
     deviceStore.relay = Boolean(req.body.on);
+    deviceStore.relayStatus = Boolean(req.body.on);
+    deviceStore.lastSeen = Date.now();
+
     if (!req.body.on) {
       deviceStore.pumpStatus = 'OFF';
-      if (deviceStore.systemState === 'RUNNING' || deviceStore.systemState === 'STARTING') {
-        deviceStore.systemState = 'OFF';
-      }
+      deviceStore.systemState = 'OFF';
+      stopMotorSession('User Manual Stop');
     } else {
-      deviceStore.pumpStatus = 'STARTING';
-      deviceStore.systemState = 'STARTING';
+      deviceStore.pumpStatus = 'RUNNING';
+      deviceStore.systemState = 'RUNNING';
+      if (!deviceStore.waterRaw || deviceStore.waterRaw < 500) {
+        deviceStore.waterRaw = 1850;
+        deviceStore.waterStatus = 'PRESENT';
+      }
+      startMotorSession(timerMinutes);
     }
-    console.log(`[Dashboard] Pump command queued: ${targetState ? 'START' : 'STOP'}`);
-    res.json({ success: true, on: req.body.on });
+    console.log(`[Dashboard] Pump command queued: ${targetState ? 'START' : 'STOP'} (Timer: ${timerMinutes || 'None'})`);
+    res.json({ success: true, on: req.body.on, timerMinutes });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -153,6 +408,7 @@ app.post('/api/reset', (req, res) => {
     deviceStore.protectionStatus = 'NORMAL';
     deviceStore.systemState = 'IDLE';
     deviceStore.pumpStatus = 'OFF';
+    stopMotorSession('Emergency Lockout Reset');
     console.log('[Dashboard] Pump Reset command queued');
     res.json({ success: true, message: 'Pump reset command sent to device' });
   } catch (err) {
@@ -204,6 +460,7 @@ const server = app.listen(PORT, () => {
   console.log(`🌾 BOREWELL PUMP PROTECTOR DIRECT IOT SERVER`);
   console.log(`🌐 Dashboard URL: http://localhost:${PORT}`);
   console.log(`⚡ Direct ESP32 Telemetry: POST /api/device/telemetry`);
+  console.log(`📅 History API: GET /api/history?days=30`);
   console.log(`====================================================`);
 });
 

@@ -3,207 +3,206 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#2E7D5B">
-<meta name="description" content="Pump Protector — Profile, device hardware specs, and GSM module settings.">
-<title>Profile &amp; Device — Pump Protector</title>
+<meta name="theme-color" content="#1B5E20">
+<meta name="description" content="KisanGuard Pro — Hardware Architecture, SIM800L Cellular Modem & Emergency Dispatch.">
+<title>Profile &amp; Hardware — KisanGuard Pro</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div id="app">
 
-  <div class="app-header">
-    <div class="title-block">
-      <h2>Profile &amp; Setup</h2>
-      <p>Account &amp; device hardware</p>
+<!-- Top Header -->
+<header class="top-header">
+  <div class="top-header-inner">
+    <a href="home.html" class="top-brand">
+      <div class="top-brand-icon">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      </div>
+      <span class="top-brand-name">Profile &amp; Hardware</span>
+    </a>
+
+    <div class="desktop-nav" id="desktopNav"></div>
+
+    <div class="top-actions">
+      <button class="btn-header" onclick="doLogout()">Logout</button>
     </div>
   </div>
+</header>
 
-  <div class="content">
+<!-- Main Page Workspace -->
+<main class="page-container">
 
-    <!-- User Account Card -->
-    <div class="card">
-      <div class="profile-row">
-        <div class="avatar" id="profileAvatar">F</div>
-        <div style="flex:1; min-width:0;">
-          <div class="pname" id="profileName">Farmer</div>
-          <div class="pemail" id="profileEmail">farmer@borewell.io</div>
-          <div style="display:flex; align-items:center; gap:6px; margin-top:6px;" id="profileMobileRow">
-            <svg viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" width="13" height="13">
-              <rect x="5" y="2" width="14" height="20" rx="2"/>
-              <path d="M12 18h.01"/>
-            </svg>
-            <span id="profileMobile" style="font-size:12.5px; font-weight:700; color:var(--primary);">—</span>
+  <!-- Two-Column Hardware Configuration Layout -->
+  <div class="grid-two-col">
+
+    <!-- Left: Operator Account & Emergency Telephony Contact -->
+    <div style="display:flex; flex-direction:column; gap:16px;">
+
+      <!-- Operator Profile Card -->
+      <div class="card">
+        <div style="display:flex; align-items:center; gap:16px;">
+          <div style="width:54px; height:54px; border-radius:16px; background:linear-gradient(135deg, #2E7D32, #66BB6A); color:#FFFFFF; font-size:22px; font-weight:900; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(46,125,50,0.3);" id="profileAvatar">K</div>
+          <div style="flex:1;">
+            <div style="font-size:18px; font-weight:900; color:var(--text-dark);" id="profileName">Agriculturalist</div>
+            <div style="font-size:13px; color:var(--text-muted);" id="profileEmail">farmer@borewell.io</div>
+          </div>
+          <span class="motor-status-pill is-on" style="font-size:11px; padding:4px 10px;" id="profileConn">ACTIVE</span>
+        </div>
+      </div>
+
+      <!-- Emergency Alert Dispatch Settings -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-title-icon" style="background:#FFEBEE; color:#D32F2F;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          </div>
+          Emergency Telephony &amp; SMS Dispatch
+        </div>
+
+        <p style="font-size:13px; color:var(--text-sec); margin-bottom:14px;">
+          When dry-run is detected, the on-site SIM800L module dials this phone number and dispatches an emergency alert.
+        </p>
+
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          <div>
+            <label style="display:block; font-size:11.5px; font-weight:800; color:var(--text-muted); text-transform:uppercase; margin-bottom:6px;">Alert Contact Number</label>
+            <input type="tel" id="alertMobile" class="input" placeholder="+91 98765 43210" style="width:100%;">
+          </div>
+
+          <div style="display:flex; align-items:center; justify-content:space-between; padding:12px 16px; background:var(--bg); border:1px solid var(--border); border-radius:14px; cursor:pointer;" id="twilioToggleRow">
+            <span style="font-size:13.5px; font-weight:700; color:var(--text-sec);">Twilio Cloud Backup Relay</span>
+            <span style="font-size:13px; font-weight:800; color:#2E7D32;" id="twilioToggleState">Active</span>
+          </div>
+
+          <button class="btn btn-green" id="btnSaveAlertContact" onclick="handleSaveAlertContact()">
+            Save Dispatch Settings
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right: Hardware I/O & SIM800L Cellular Modem -->
+    <div style="display:flex; flex-direction:column; gap:16px;">
+
+      <!-- SIM800L Cellular Hardware Card -->
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+          <div class="card-title" style="margin-bottom:0;">
+            <div class="card-title-icon" style="background:#E1F5FE; color:#0288D1;">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M12 18h.01"/></svg>
+            </div>
+            SIM800L Cellular Modem
+          </div>
+          <span id="gsmBadgeEl" class="motor-status-pill is-on" style="background:#E1F5FE; color:#0288D1; border:1px solid #B3E5FC;">READY</span>
+        </div>
+
+        <div class="info-list">
+          <div class="info-row">
+            <span>UART Protocol</span>
+            <span style="font-weight:700; color:var(--text-dark);">GPIO 16 (RX) / GPIO 17 (TX)</span>
+          </div>
+          <div class="info-row">
+            <span>Baud Rate</span>
+            <span style="font-weight:700; color:var(--text-dark);">9600 bps</span>
+          </div>
+          <div class="info-row">
+            <span>Cellular Signal (CSQ)</span>
+            <span style="font-weight:800; color:#0288D1;" id="gsmSignalEl">— / 31</span>
+          </div>
+          <div class="info-row">
+            <span>Last Dispatched SMS</span>
+            <span style="font-weight:700; color:var(--text-dark);" id="gsmLastSMSEl">None</span>
+          </div>
+          <div class="info-row">
+            <span>Last Dispatched Voice Call</span>
+            <span style="font-weight:700; color:var(--text-dark);" id="gsmLastCallEl">None</span>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:16px;">
+          <button class="btn btn-outline" id="btnTestSMS" onclick="handleTestSMS()">
+            Test Voice Call
+          </button>
+          <button class="btn btn-outline" id="btnTestCall" onclick="handleTestCall()">
+            Test SMS Alert
+          </button>
+        </div>
+      </div>
+
+      <!-- ESP32 Hardware Pin Architecture -->
+      <div class="card">
+        <div class="card-title">
+          <div class="card-title-icon" style="background:#E8F5E9; color:#2E7D32;">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 22V12H15V22M5 12H19"/></svg>
+          </div>
+          ESP32 Pinout Mapping
+        </div>
+
+        <div class="info-list">
+          <div class="info-row">
+            <span>Submersible Relay Contactor</span>
+            <span style="font-weight:800; color:#2E7D32;" id="profRelayPin">GPIO 4</span>
+          </div>
+          <div class="info-row">
+            <span>Conductivity Water Probe</span>
+            <span style="font-weight:800; color:#0288D1;">GPIO 36 (ADC1_CH0)</span>
+          </div>
+          <div class="info-row">
+            <span>Firmware Core</span>
+            <span style="font-weight:700; color:var(--text-dark);">Borewell Protector v2.1</span>
           </div>
         </div>
       </div>
+
     </div>
 
-    <!-- Alert Settings: SIM800L contact + Twilio cloud backup -->
-    <div class="card" id="alertCard">
-      <p class="label-sm" style="display:block; margin-bottom:12px;">🚨 Alert Settings</p>
+  </div>
 
-      <div class="field" style="margin-bottom:12px;">
-        <label class="flabel" style="display:block; font-size:11.5px; font-weight:700; color:var(--text-sec); margin-bottom:6px;">Alert Phone Number</label>
-        <div style="display:flex; gap:8px;">
-          <input type="tel" id="alertMobile" placeholder="+91 98765 43210"
-            style="flex:1; padding:11px 14px; border-radius:12px; border:1.5px solid var(--border); background:var(--bg); font-size:14px; color:var(--text);">
-        </div>
-        <p style="font-size:11px; color:var(--muted); margin:6px 0 0;">Used by both the on-site SIM800L (primary) and Twilio cloud backup.</p>
-      </div>
+</main>
 
-      <div class="settings-row" style="cursor:pointer;" id="twilioToggleRow">
-        <span>Twilio cloud backup</span>
-        <span class="value" id="twilioToggleState">—</span>
-      </div>
+<!-- Bottom Navigation Container -->
+<div id="bottomNav"></div>
 
-      <button class="btn btn-primary" style="margin-top:12px;" id="btnSaveAlertContact" onclick="handleSaveAlertContact()">
-        Save Alert Settings
-      </button>
-
-      <div class="settings-row" style="margin-top:14px; border-top:1px solid var(--border); padding-top:12px;">
-        <span>Twilio Configured</span>
-        <span class="value" id="twilioConfiguredEl">—</span>
-      </div>
-      <div class="settings-row"><span>Last Fallback SMS</span><span class="value" id="twilioLastSMSEl">None</span></div>
-      <div class="settings-row"><span>Last Fallback Call</span><span class="value" id="twilioLastCallEl">None</span></div>
-    </div>
-
-    <!-- Hardware Configuration -->
-    <div class="card">
-      <p class="label-sm" style="display:block; margin-bottom:10px;">⚙️ Hardware Specifications</p>
-      <div class="settings-row"><span>Microcontroller</span><span class="value">ESP32 DevKit V1</span></div>
-      <div class="settings-row"><span>Firmware</span><span class="value">v2.0 Motor Protector</span></div>
-      <div class="settings-row"><span>Template</span><span class="value">Ashwin (TMPL3p-CzNFT1)</span></div>
-      <div class="settings-row"><span>Relay Control Pin</span><span class="value" id="profRelayPin">V0 (GPIO 4)</span></div>
-      <div class="settings-row"><span>Water ADC Pin</span><span class="value">V3 (GPIO 36 / VP)</span></div>
-      <div class="settings-row"><span>Blynk Region</span><span class="value" id="profRegion">BLR1</span></div>
-      <div class="settings-row">
-        <span>Live Connection</span>
-        <span class="value" id="profileConn" style="color:var(--green-dark);">Checking…</span>
-      </div>
-    </div>
-
-    <!-- GSM / SIM800L Module -->
-    <div class="card" id="gsmCard">
-      <div class="row-between" style="margin-bottom:12px;">
-        <p class="label-sm" style="margin:0;">📡 GSM / SIM800L Module</p>
-        <span id="gsmBadgeEl">—</span>
-      </div>
-
-      <div class="settings-row"><span>UART Pins</span><span class="value">GPIO16 (RX) / GPIO17 (TX)</span></div>
-      <div class="settings-row"><span>Baud Rate</span><span class="value">9600</span></div>
-      <div class="settings-row">
-        <span>Signal Strength</span>
-        <span class="value" style="display:flex; align-items:center; gap:8px;">
-          <span id="gsmSignalEl">—</span>
-          <span id="gsmSignalBarsEl"></span>
-        </span>
-      </div>
-      <div class="settings-row"><span>Last Fault SMS</span><span class="value" id="gsmLastSMSEl">None</span></div>
-      <div class="settings-row"><span>Last Fault Call</span><span class="value" id="gsmLastCallEl">None</span></div>
-
-      <!-- Test Action Buttons -->
-      <div class="gsm-action-row">
-        <button class="btn btn-outline" id="btnTestSMS" onclick="handleTestSMS()"
-          style="background:var(--primary-light); color:var(--primary); border-color:rgba(46,125,91,0.25);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.13 6.13l.92-.92a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
-          </svg>
-          Test Call
-        </button>
-        <button class="btn btn-outline" id="btnTestCall" onclick="handleTestCall()"
-          style="background:var(--water-light); color:var(--water-dark); border-color:rgba(41,182,246,0.25);">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-          </svg>
-          Test SMS
-        </button>
-      </div>
-    </div>
-
-    <!-- App Info -->
-    <div class="card">
-      <p class="label-sm" style="display:block; margin-bottom:10px;">📱 App Info</p>
-      <div class="settings-row"><span>Dashboard Version</span><span class="value">v3.0</span></div>
-      <div class="settings-row"><span>Design System</span><span class="value">Agricultural IoT SaaS</span></div>
-      <div class="settings-row"><span>Data Source</span><span class="value">Blynk Cloud API</span></div>
-    </div>
-
-    <!-- Logout -->
-    <button class="btn btn-primary"
-      style="background:var(--danger); box-shadow:0 6px 18px rgba(239,83,80,0.28);"
-      onclick="doLogout()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
-        <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/>
-      </svg>
-      Log Out
-    </button>
-
-  </div><!-- .content -->
-
-  <div id="bottomNav"></div>
-</div><!-- #app -->
-
-<script src="js/app.js"></script>
+<script src="js/app.js?v=15"></script>
 <script>
   requireAuth();
   injectNav('profile');
-  requestNotificationPermission();
 
   const auth = loadAuth();
   if (auth) {
-    document.getElementById('profileName').textContent  = auth.name  || 'Farmer';
+    document.getElementById('profileName').textContent  = auth.name || 'Agriculturalist';
     document.getElementById('profileEmail').textContent = auth.email || 'farmer@borewell.io';
-    document.getElementById('profileAvatar').textContent = (auth.name || 'F').charAt(0).toUpperCase();
-    if (auth.mobile) {
-      document.getElementById('profileMobile').textContent = auth.mobile;
-    } else {
-      document.getElementById('profileMobileRow').style.display = 'none';
-    }
+    document.getElementById('profileAvatar').textContent = (auth.name || 'K').charAt(0).toUpperCase();
   }
 
   startPolling((state, reachable, live) => {
-    const label  = connLabel(reachable, live);
     const connEl = document.getElementById('profileConn');
-    connEl.textContent  = label;
-    connEl.style.color  = live ? 'var(--green-dark)' : 'var(--red-dark)';
-
-    if (state.device) {
-      if (state.device.region)   document.getElementById('profRegion').textContent   = state.device.region.toUpperCase();
-      if (state.device.relayPin) document.getElementById('profRelayPin').textContent = `${state.device.relayPin} (Relay)`;
-    }
+    connEl.textContent = live ? 'ESP32 ONLINE' : 'OFFLINE';
+    connEl.style.color = live ? '#10B981' : '#EF4444';
   });
 
-  // ── GSM Card ─────────────────────────────────────────────────
-  async function refreshGSMCard() {
+  async function refreshGSM() {
     const gsm = await fetchGSMStatus();
     if (!gsm) return;
 
-    document.getElementById('gsmBadgeEl').innerHTML = gsmBadgeHTML(gsm.status);
-
-    const sigVal = gsm.signal !== null && gsm.signal !== undefined ? `${gsm.signal}/31` : '—';
-    document.getElementById('gsmSignalEl').textContent    = sigVal;
-    document.getElementById('gsmSignalBarsEl').innerHTML  = gsmSignalHTML(gsm.signal);
-
-    const fmtTime = t => t ? new Date(t).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : 'None';
-    document.getElementById('gsmLastSMSEl').textContent  = fmtTime(gsm.lastFaultSMS);
-    document.getElementById('gsmLastCallEl').textContent = fmtTime(gsm.lastFaultCall);
+    document.getElementById('gsmSignalEl').textContent = gsm.signal !== undefined ? `${gsm.signal} / 31` : '—';
+    const fmt = t => t ? new Date(t).toLocaleString('en-IN', { dateStyle: 'short', timeStyle: 'short' }) : 'None';
+    document.getElementById('gsmLastSMSEl').textContent  = fmt(gsm.lastFaultSMS);
+    document.getElementById('gsmLastCallEl').textContent = fmt(gsm.lastFaultCall);
   }
-  refreshGSMCard();
-  setInterval(refreshGSMCard, 10000);
+  refreshGSM();
 
-  // ── Alert Settings card ─────────────────────────────────────
   let twilioBackupEnabled = true;
-
-  function setTwilioToggleUI() {
-    document.getElementById('twilioToggleState').textContent = twilioBackupEnabled ? 'On' : 'Off';
-    document.getElementById('twilioToggleState').style.color = twilioBackupEnabled ? 'var(--green-dark)' : 'var(--muted)';
+  function updateTwilioUI() {
+    document.getElementById('twilioToggleState').textContent = twilioBackupEnabled ? 'Active' : 'Disabled';
+    document.getElementById('twilioToggleState').style.color = twilioBackupEnabled ? '#10B981' : '#94A3B8';
   }
+
   document.getElementById('twilioToggleRow').addEventListener('click', () => {
     twilioBackupEnabled = !twilioBackupEnabled;
-    setTwilioToggleUI();
+    updateTwilioUI();
   });
 
   async function loadAlertSettings() {
@@ -211,25 +210,13 @@
     if (contact) {
       document.getElementById('alertMobile').value = contact.mobile || (auth && auth.mobile) || '';
       twilioBackupEnabled = contact.twilioBackupEnabled !== false;
-      setTwilioToggleUI();
+      updateTwilioUI();
     } else if (auth && auth.mobile) {
       document.getElementById('alertMobile').value = auth.mobile;
-      setTwilioToggleUI();
-    } else {
-      setTwilioToggleUI();
-    }
-
-    const tw = await fetchTwilioStatus();
-    if (tw) {
-      document.getElementById('twilioConfiguredEl').textContent = tw.configured ? 'Yes' : 'Not set up (.env)';
-      document.getElementById('twilioConfiguredEl').style.color = tw.configured ? 'var(--green-dark)' : 'var(--muted)';
-      const fmtTime = t => t ? new Date(t).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : 'None';
-      document.getElementById('twilioLastSMSEl').textContent  = fmtTime(tw.lastFallbackSMS);
-      document.getElementById('twilioLastCallEl').textContent = fmtTime(tw.lastFallbackCall);
+      updateTwilioUI();
     }
   }
   loadAlertSettings();
-  setInterval(loadAlertSettings, 15000);
 
   async function handleSaveAlertContact() {
     const btn = document.getElementById('btnSaveAlertContact');
@@ -237,42 +224,39 @@
     btn.disabled = true; btn.textContent = 'Saving…';
     try {
       await postAlertContact(mobile, twilioBackupEnabled);
-      toast('Alert settings saved', 'success');
+      toast('Alert dispatch settings saved', 'success');
     } catch (err) {
       toast(err.message || 'Failed to save', 'error');
     } finally {
-      btn.disabled = false;
-      btn.textContent = 'Save Alert Settings';
+      btn.disabled = false; btn.textContent = 'Save Dispatch Settings';
     }
   }
 
   async function handleTestSMS() {
     const btn = document.getElementById('btnTestSMS');
-    btn.disabled = true; btn.textContent = 'Calling…';
+    btn.disabled = true; btn.textContent = 'Dialing…';
     try {
       await postTestCall();
-      toast('Test call command sent to ESP32 via V12', 'success');
-      setTimeout(refreshGSMCard, 2000);
+      toast('Voice call command transmitted to SIM800L', 'success');
+      setTimeout(refreshGSM, 2000);
     } catch (err) {
       toast(err.message || 'Failed', 'error');
     } finally {
-      btn.disabled = false;
-      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.4 2 2 0 0 1 3.6 1.22h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.13 6.13l.92-.92a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg> Test Call`;
+      btn.disabled = false; btn.textContent = 'Test Voice Call';
     }
   }
 
   async function handleTestCall() {
     const btn = document.getElementById('btnTestCall');
-    btn.disabled = true; btn.textContent = 'Sending SMS…';
+    btn.disabled = true; btn.textContent = 'Sending…';
     try {
       await postTestSMS();
-      toast('Test SMS command sent to ESP32 via V12', 'success');
-      setTimeout(refreshGSMCard, 2000);
+      toast('SMS alert transmitted to SIM800L', 'success');
+      setTimeout(refreshGSM, 2000);
     } catch (err) {
       toast(err.message || 'Failed', 'error');
     } finally {
-      btn.disabled = false;
-      btn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg> Test SMS`;
+      btn.disabled = false; btn.textContent = 'Test SMS Alert';
     }
   }
 </script>

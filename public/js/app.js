@@ -40,24 +40,181 @@ function doLogout() {
   window.location.href = 'login.html';
 }
 
-// ---------------- Bottom navigation ----------------
+// ---------------- Duration & Runtime Formatters ----------------
+function formatDurationMs(ms, detailed = false) {
+  if (!ms || isNaN(ms) || ms <= 0) return detailed ? '00:00:00' : '0m';
+  const totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (detailed) {
+    const hh = String(hours).padStart(2, '0');
+    const mm = String(minutes).padStart(2, '0');
+    const ss = String(seconds).padStart(2, '0');
+    return `${hh}:${mm}:${ss}`;
+  }
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`;
+  }
+  return `${minutes}m ${seconds}s`;
+}
+
+// ---------------- Multi-Language Dictionary (English / Hindi / Marathi) ----------------
+const I18N = {
+  en: {
+    brand: 'KisanGuard Pro',
+    home: 'Home',
+    data: 'Data & History',
+    pump: 'Pump Control',
+    alerts: 'Alert Center',
+    profile: 'Profile & GSM',
+    startMotor: 'Start Motor',
+    stopMotor: 'Stop Motor',
+    motorRunning: 'Motor is Running',
+    motorOff: 'Motor is Off',
+    motorOffline: 'Motor Offline',
+    lockoutActive: 'Dry-Run Lockout',
+    waterPresent: 'Water Present',
+    waterAbsent: 'Water Absent (Dry)',
+    todayRuntime: "Today's Motor ON Time",
+    activeSession: 'Active Motor ON Session',
+    monthRuntime: '30-Day Motor ON Time',
+    timerOff: 'Off (Continuous)',
+    timer15m: '15 Minutes',
+    timer30m: '30 Minutes',
+    timer1h: '1 Hour',
+    timer2h: '2 Hours',
+    reset: 'Reset Lockout',
+    exportCsv: 'Export Sessions (CSV)',
+    language: 'Language'
+  },
+  hi: {
+    brand: 'किसानगार्ड प्रो',
+    home: 'होम',
+    data: 'डेटा और इतिहास',
+    pump: 'पंप नियंत्रण',
+    alerts: 'अलर्ट केंद्र',
+    profile: 'प्रोफाइल और जीएसएम',
+    startMotor: 'मोटर चालू करें',
+    stopMotor: 'मोटर बंद करें',
+    motorRunning: 'मोटर चल रही है',
+    motorOff: 'मोटर बंद है',
+    motorOffline: 'मोटर ऑफलाइन',
+    lockoutActive: 'ड्राय-रन लॉकआउट',
+    waterPresent: 'पानी उपलब्ध है',
+    waterAbsent: 'पानी अनुपलब्ध (सूखा)',
+    todayRuntime: 'आज की मोटर चालू समय',
+    activeSession: 'वर्तमान चालू सेशन',
+    monthRuntime: '30-दिन की कुल अवधि',
+    timerOff: 'बंद (अनवरत)',
+    timer15m: '15 मिनट',
+    timer30m: '30 मिनट',
+    timer1h: '1 घंटा',
+    timer2h: '2 घंटे',
+    reset: 'लॉकआउट रीसेट करें',
+    exportCsv: 'सेशन डाउनलोड (CSV)',
+    language: 'भाषा'
+  },
+  mr: {
+    brand: 'किसानगार्ड प्रो',
+    home: 'मुख्य पृष्ठ',
+    data: 'माहिती व इतिहास',
+    pump: 'पंप नियंत्रण',
+    alerts: 'अलर्ट केंद्र',
+    profile: 'प्रोफाइल व GSM',
+    startMotor: 'मोटर सुरू करा',
+    stopMotor: 'मोटर बंद करा',
+    motorRunning: 'मोटर चालू आहे',
+    motorOff: 'मोटर बंद आहे',
+    motorOffline: 'मोटर ऑफलाइन',
+    lockoutActive: 'ड्राय-रन लॉकआउट',
+    waterPresent: 'पाणी उपलब्ध आहे',
+    waterAbsent: 'पाणी नाही (ड्राय)',
+    todayRuntime: 'आजचा मोटर चालू वेळ',
+    activeSession: 'सध्याचा चालू वेळ',
+    monthRuntime: '३० दिवसांचा एकूण वेळ',
+    timerOff: 'बंद (सतत)',
+    timer15m: '१५ मिनिटे',
+    timer30m: '३० मिनिटे',
+    timer1h: '१ तास',
+    timer2h: '२ तास',
+    reset: 'रीसेट करा',
+    exportCsv: 'सेशन डाऊनलोड (CSV)',
+    language: 'भाषा'
+  }
+};
+
+function getLanguage() {
+  return localStorage.getItem('kgLang') || 'en';
+}
+
+function setLanguage(lang) {
+  if (['en', 'hi', 'mr'].includes(lang)) {
+    localStorage.setItem('kgLang', lang);
+    window.location.reload();
+  }
+}
+
+function t(key) {
+  const lang = getLanguage();
+  return (I18N[lang] && I18N[lang][key]) || I18N['en'][key] || key;
+}
+
+// ---------------- Navigation Injector (Desktop Header & Mobile Bottom Bar) ----------------
 const NAV_ITEMS = [
-  { id: 'home', label: 'Home', href: 'home.html', icon: '<path d="M3 11l9-8 9 8M5 10v10h14V10"/>' },
-  { id: 'dashboard', label: 'Data', href: 'dashboard.html', icon: '<path d="M3 3v18h18M7 15l4-4 3 3 5-6"/>' },
-  { id: 'pump', label: 'Pump', href: 'pump.html', icon: '<path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/>' },
-  { id: 'alerts', label: 'Alerts', href: 'alerts.html', icon: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>' },
-  { id: 'profile', label: 'Profile', href: 'profile.html', icon: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/>' }
+  { id: 'home', labelKey: 'home', defaultLabel: 'Home', href: 'home.html', icon: '<path d="M6 9c0-3 2.5-5 6-5s6 2 6 5"/><path d="M5 9c0 1.5 1 2.5 3 2.5h8c2 0 3-1 3-2.5"/><circle cx="12" cy="13" r="3.5"/><path d="M4 21c0-3 3.5-4.5 8-4.5s8 1.5 8 4.5"/>' },
+  { id: 'dashboard', labelKey: 'data', defaultLabel: 'Data', href: 'dashboard.html', icon: '<path d="M12 22V8"/><path d="M12 18c-2-1-4-1-5 1"/><path d="M12 18c2-1 4-1 5 1"/><path d="M12 14c-2.5-1.5-5-1.5-6 1"/><path d="M12 14c2.5-1.5 5-1.5 6 1"/><path d="M12 10c-3-2-6-1.5-7 1"/><path d="M12 10c3-2 6-1.5 7 1"/>' },
+  { id: 'pump', labelKey: 'pump', defaultLabel: 'Pump', href: 'pump.html', icon: '<path d="M6 18h12M12 18V7M9 7h6M12 7V4M12 4H7v3"/><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/>' },
+  { id: 'alerts', labelKey: 'alerts', defaultLabel: 'Alerts', href: 'alerts.html', icon: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/>' },
+  { id: 'profile', labelKey: 'profile', defaultLabel: 'Profile', href: 'profile.html', icon: '<path d="M3 17h2M19 17h2"/><circle cx="7" cy="17" r="3"/><circle cx="17" cy="16" r="4"/><path d="M7 14h6v-6h-3L7 11z"/>' }
 ];
 
 function injectNav(activeId) {
-  const mount = document.getElementById('bottomNav');
-  if (!mount) return;
-  const items = NAV_ITEMS.map(item => `
-    <a class="nav-item ${item.id === activeId ? 'active' : ''}" href="${item.href}" id="nav_${item.id}">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${item.icon}</svg>
-      <span>${item.label}</span>
-    </a>`).join('');
-  mount.outerHTML = `<nav class="bottom-nav" id="bottomNav">${items}</nav>`;
+  const curLang = getLanguage();
+
+  // Mobile Bottom Nav
+  let mount = document.getElementById('bottomNav');
+  if (!mount) {
+    const existing = document.querySelector('.bottom-nav, .mobile-bottom-bar');
+    if (existing) mount = existing;
+  }
+
+  if (mount) {
+    const items = NAV_ITEMS.map(item => {
+      const label = t(item.labelKey) || item.defaultLabel;
+      return `
+      <a class="nav-item ${item.id === activeId ? 'active' : ''}" href="${item.href}" id="nav_${item.id}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${item.icon}</svg>
+        <span>${label}</span>
+      </a>`;
+    }).join('');
+    mount.outerHTML = `<nav class="bottom-nav" id="bottomNav">${items}</nav>`;
+  }
+
+  // Desktop Header Nav
+  const desktopNav = document.getElementById('desktopNav');
+  if (desktopNav) {
+    const links = NAV_ITEMS.map(item => {
+      const label = t(item.labelKey) || item.defaultLabel;
+      return `
+      <a class="desktop-nav-link ${item.id === activeId ? 'active' : ''}" href="${item.href}">
+        ${label}
+      </a>`;
+    }).join('');
+
+    const langSelectorHtml = `
+      <div style="margin-left:12px; display:inline-flex; align-items:center; gap:4px;">
+        <select onchange="setLanguage(this.value)" style="background:rgba(255,255,255,0.15); color:#FFFFFF; border:1px solid rgba(255,255,255,0.3); border-radius:14px; padding:4px 8px; font-size:11.5px; font-weight:700; cursor:pointer; outline:none;">
+          <option value="en" ${curLang === 'en' ? 'selected' : ''} style="color:#000;">English 🇬🇧</option>
+          <option value="hi" ${curLang === 'hi' ? 'selected' : ''} style="color:#000;">हिन्दी 🇮🇳</option>
+          <option value="mr" ${curLang === 'mr' ? 'selected' : ''} style="color:#000;">मराठी 🇮🇳</option>
+        </select>
+      </div>`;
+
+    desktopNav.innerHTML = links + langSelectorHtml;
+  }
 }
 
 // ---------------- Toast Notification ----------------
@@ -75,6 +232,33 @@ function toast(msg, type = 'info') {
   t._hideTimer = setTimeout(() => t.classList.remove('show'), 2500);
 }
 
+// ---------------- Audio Alarm Synth for Dry-Run Faults ----------------
+let _audioCtx = null;
+function playFaultSiren() {
+  try {
+    if (!localStorage.getItem('sirenEnabled')) return;
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    if (!_audioCtx) _audioCtx = new AudioCtx();
+    if (_audioCtx.state === 'suspended') _audioCtx.resume();
+
+    const osc = _audioCtx.createOscillator();
+    const gain = _audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(880, _audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(440, _audioCtx.currentTime + 0.5);
+
+    gain.gain.setValueAtTime(0.3, _audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, _audioCtx.currentTime + 0.5);
+
+    osc.connect(gain);
+    gain.connect(_audioCtx.destination);
+
+    osc.start();
+    osc.stop(_audioCtx.currentTime + 0.5);
+  } catch (e) { /* silent */ }
+}
+
 // ---------------- API Calls ----------------
 async function fetchStatus() {
   try {
@@ -87,11 +271,21 @@ async function fetchStatus() {
   }
 }
 
-async function postMotor(on) {
+async function fetchSessions(limit = 100) {
+  try {
+    const res = await fetch(`/api/sessions?limit=${limit}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function postMotor(on, timerMinutes = null) {
   const res = await fetch('/api/motor', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ on })
+    body: JSON.stringify({ on, timerMinutes })
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
@@ -334,6 +528,22 @@ function logAlertIfNew(fault, sysState) {
     const title = wasFault ? `⚠️ Pump Fault: ${fault}` : '⚠️ Pump Protection Activated';
     const body  = 'Dry-run detected. Pump stopped. SMS alert sent to farmer.';
     sendBrowserNotification(title, body);
+  }
+}
+
+// ─── History API helper ───────────────────────────────────────────────────────
+
+/**
+ * Fetch telemetry history from the server.
+ * @param {number} days - Number of days to retrieve (max 30)
+ */
+async function fetchHistory(days = 30) {
+  try {
+    const res = await fetch(`/api/history?days=${days}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
   }
 }
 

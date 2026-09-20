@@ -3,104 +3,166 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#2E7D5B">
-<meta name="description" content="Pump Protector — Control and monitor your borewell pump with dry-run protection.">
-<title>Pump Control — Pump Protector</title>
+<meta name="theme-color" content="#1B5E20">
+<meta name="description" content="KisanGuard — Borewell Pump Motor Control Panel.">
+<title>Pump Control — KisanGuard</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-<div id="app">
 
-  <div class="app-header">
-    <div class="title-block">
-      <h2>Pump Control</h2>
-      <p>
-        <span class="conn-dot" id="pumpConnDot"></span>
-        <span id="pumpConnText">Connecting to device…</span>
-      </p>
+<!-- Top Header -->
+<header class="top-header">
+  <div class="top-header-inner">
+    <a href="home.html" class="top-brand">
+      <div class="top-brand-icon">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+      </div>
+      <span class="top-brand-name">Pump Control</span>
+    </a>
+
+    <div class="desktop-nav" id="desktopNav"></div>
+
+    <div class="top-actions">
+      <div class="conn-badge">
+        <span class="conn-dot" id="pumpBeaconDot"></span>
+        <span id="pumpConnLabel">Connecting…</span>
+      </div>
+      <button class="btn-header" onclick="doLogout()">Logout</button>
     </div>
   </div>
+</header>
 
-  <div class="content">
+<!-- Page Content -->
+<main class="page-container">
 
-    <!-- Safety Verification -->
+  <!-- Emergency Fault Card -->
+  <div id="pumpResetCard" class="fault-banner" style="display:none;">
+    <div class="fault-left">
+      <div class="fault-icon">
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+      </div>
+      <div>
+        <div class="fault-title">Dry-Run Lockout Engaged</div>
+        <div class="fault-desc">Motor safely stopped. Check water before restarting.</div>
+      </div>
+    </div>
+    <button class="btn btn-red" style="padding:8px 14px; font-size:12px;" onclick="handleEmergencyStop()">Reset</button>
+  </div>
+
+  <!-- Main Power Control Card -->
+  <div class="card pump-hero">
+    <div class="pump-hero-label">15 HP Submersible Contactor</div>
+
+    <!-- Big Power Button -->
+    <button class="power-circle is-off" id="pumpPowerBtn" title="Toggle Motor">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/>
+      </svg>
+      <span id="pumpPowerLabel">Start Motor</span>
+    </button>
+
+    <!-- Auto-Off Irrigation Timer -->
+    <div class="timer-select-wrap" style="width:100%; max-width:280px; background:var(--bg); border:1px solid var(--border);">
+      <span class="timer-select-label" style="color:var(--text-dark);">⏱️ Auto-Off:</span>
+      <select id="pumpTimerSelect" class="timer-select" style="background:#FFFFFF; color:var(--text-dark);">
+        <option value="0">Off (Continuous)</option>
+        <option value="15">15 Minutes</option>
+        <option value="30">30 Minutes</option>
+        <option value="60">1 Hour</option>
+        <option value="120">2 Hours</option>
+      </select>
+    </div>
+
+    <!-- Motor Status Pill -->
+    <div class="motor-status-pill is-off" id="pumpMotorBadge">
+      <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--text-muted); transition:all 0.3s;" id="pumpMotorDot"></span>
+      <span id="pumpMotorLabel">MOTOR OFF • STANDBY</span>
+    </div>
+
+    <p style="font-size:13px; font-weight:600; color:var(--text-muted); text-align:center;" id="pumpStatusLine">
+      Checking unit connection…
+    </p>
+  </div>
+
+  <!-- Safety Checks & Timers Row -->
+  <div class="grid-two-col">
+
+    <!-- Safety Checks -->
     <div class="card">
-      <p class="label-sm" style="display:block; margin-bottom:14px;">🛡️ Safety Verification</p>
-      <div class="checklist">
-        <div class="check-row">
-          <div class="check-icon" id="checkWater">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-              <path d="M20 6 9 17l-5-5"/>
-            </svg>
-          </div>
-          <span id="checkWaterText">Checking water sensor…</span>
+      <div class="card-title" style="font-size:14px;">
+        <div class="card-title-icon" style="background:#E8F5E9; color:#2E7D32;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-2-8 2v7c0 6 8 10 8 10z"/></svg>
         </div>
-        <div class="check-row">
-          <div class="check-icon" id="checkConn">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-              <path d="M20 6 9 17l-5-5"/>
-            </svg>
+        Safety Checks
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border-radius:10px; border:1px solid var(--border-light);">
+          <div id="checkWaterIcon" style="width:26px; height:26px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:#E8F5E9; color:#2E7D32;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
           </div>
-          <span id="checkConnText">Checking Wi-Fi link…</span>
+          <div>
+            <div style="font-size:12.5px; font-weight:700; color:var(--text-dark);" id="checkWaterText">Checking water…</div>
+            <div style="font-size:10.5px; color:var(--text-muted);">Conductivity probe</div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border-radius:10px; border:1px solid var(--border-light);">
+          <div id="checkConnIcon" style="width:26px; height:26px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:#E8F5E9; color:#2E7D32;">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
+          </div>
+          <div>
+            <div style="font-size:12.5px; font-weight:700; color:var(--text-dark);" id="checkConnText">Checking ESP32…</div>
+            <div style="font-size:10.5px; color:var(--text-muted);">IoT connection</div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- Power Button -->
-    <div class="card" style="text-align:center;">
-      <div class="power-btn-wrap">
-        <button class="power-btn off" id="pumpPowerBtn" title="Toggle Pump Power">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" id="pumpPowerIcon">
-            <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/>
-          </svg>
-          <span id="pumpPowerLabel">Connecting…</span>
-        </button>
-      </div>
-      <p style="text-align:center; color:var(--muted); font-size:13.5px; font-weight:600; margin:4px 0 4px;" id="pumpStatusLine">
-        Checking status…
-      </p>
-    </div>
-
-    <!-- Runtime Counters -->
+    <!-- Operation Timers & Motor ON Tracking -->
     <div class="card">
-      <p class="label-sm" style="display:block; margin-bottom:14px;">⏱ Runtime Counters</p>
-      <div class="row-between">
-        <span class="label-sm">Active Run Time</span>
-        <span class="value-md" id="pumpRuntime">—</span>
-      </div>
-      <div class="divider"></div>
-      <div class="row-between">
-        <span class="label-sm">Bypass / Auto-Reset Countdown</span>
-        <span class="value-md" id="pumpCountdown">—</span>
-      </div>
-    </div>
-
-    <!-- Dry-Run Lockout Card -->
-    <div class="card" id="pumpResetCard"
-      style="display:none; background:var(--danger-light); border-color:rgba(239,83,80,0.3); border-left:4px solid var(--danger);">
-      <div class="row-between">
-        <div>
-          <h4 style="margin:0 0 4px; font-size:14px; font-weight:800; color:var(--danger-dark);">
-            🔒 Dry-Run Lockout Active
-          </h4>
-          <p style="margin:0; font-size:12.5px; color:var(--muted);">
-            Motor is stopped. Ensure water is present in the borewell before resetting.
-          </p>
+      <div class="card-title" style="font-size:14px;">
+        <div class="card-title-icon" style="background:#FFF8E1; color:#F57F17;">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
         </div>
-        <button class="btn btn-primary"
-          style="width:auto; padding:9px 16px; font-size:12.5px; background:var(--danger); box-shadow:0 4px 12px rgba(239,83,80,0.35); flex-shrink:0;"
-          onclick="handleEmergencyStop()">Reset</button>
+        Motor ON Time &amp; Delay Timers
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <div style="padding:10px 12px; background:var(--bg); border-radius:10px; border:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Active Session</div>
+            <div style="font-size:18px; font-weight:900; color:#2E7D32; margin-top:2px;" id="pumpRuntime">00:00:00</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Today Total</div>
+            <div style="font-size:18px; font-weight:900; color:var(--text-dark); margin-top:2px;" id="pumpTodayTotal">0m</div>
+          </div>
+        </div>
+
+        <div style="padding:10px 12px; background:var(--bg); border-radius:10px; border:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
+          <div>
+            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Reset Delay</div>
+            <div style="font-size:18px; font-weight:900; color:#0288D1; margin-top:2px;" id="pumpCountdown">—</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Auto-Off Status</div>
+            <div style="font-size:13px; font-weight:800; color:var(--text-dark); margin-top:4px;" id="pumpAutoOffText">Continuous</div>
+          </div>
+        </div>
       </div>
     </div>
 
-  </div><!-- .content -->
+  </div>
 
-  <div id="bottomNav"></div>
-</div><!-- #app -->
+</main>
 
-<script src="js/app.js?v=7"></script>
+<!-- Bottom Navigation Container -->
+<div id="bottomNav"></div>
+
+<script src="js/app.js?v=15"></script>
 <script>
   requireAuth();
   injectNav('pump');
@@ -110,88 +172,117 @@
 
   startPolling((state, reachable, live) => {
     currentState = state;
-    setConnDot('pumpConnDot', live);
-    const label = connLabel(reachable, live);
-    document.getElementById('pumpConnText').textContent = label;
 
-    // Safety checks
-    setCheck('checkConn', live, live ? 'ESP32 Connected to Blynk' : label);
+    const beacon = document.getElementById('pumpBeaconDot');
+    const label  = document.getElementById('pumpConnLabel');
+    if (live) {
+      beacon.className = 'conn-dot live';
+      label.textContent = 'Connected';
+      document.getElementById('checkConnText').textContent = 'ESP32 Connected ✓';
+      document.getElementById('checkConnIcon').style.background = '#E8F5E9';
+      document.getElementById('checkConnIcon').style.color = '#2E7D32';
+    } else {
+      beacon.className = reachable ? 'conn-dot' : 'conn-dot down';
+      label.textContent = reachable ? 'Standby' : 'Offline';
+      document.getElementById('checkConnText').textContent = reachable ? 'Waiting for data…' : 'ESP32 Offline';
+      document.getElementById('checkConnIcon').style.background = reachable ? '#FFF8E1' : '#FFEBEE';
+      document.getElementById('checkConnIcon').style.color = reachable ? '#F57F17' : '#D32F2F';
+    }
 
     const waterPresent = live ? isWaterPresent(state.waterStatus, state.waterRaw) : null;
-    if (waterPresent === null) {
-      const icon = document.getElementById('checkWater');
-      icon.className = 'check-icon';
-      icon.style.background = '#ECEFF1';
-      icon.style.color = 'var(--ink-dim)';
-      document.getElementById('checkWaterText').textContent = live ? 'Water sensor awaiting reading' : 'Checking water sensor…';
+    const waterText = document.getElementById('checkWaterText');
+    const waterIcon = document.getElementById('checkWaterIcon');
+    if (waterPresent === true) {
+      waterText.textContent = 'Water Present ✓';
+      waterIcon.style.background = '#E8F5E9'; waterIcon.style.color = '#2E7D32';
+    } else if (waterPresent === false) {
+      waterText.textContent = 'Water Absent ✗';
+      waterIcon.style.background = '#FFEBEE'; waterIcon.style.color = '#D32F2F';
     } else {
-      setCheck('checkWater', waterPresent, waterPresent ? 'Water Level Normal (Safe to pump)' : 'Water Absent — Dry Run Risk!');
+      waterText.textContent = 'Checking sensor…';
+      waterIcon.style.background = '#F1F5F1'; waterIcon.style.color = '#8A9B8A';
     }
 
     const running = pumpIsRunning(state);
-    const powerBtn = document.getElementById('pumpPowerBtn');
+    const hasFault = live && ((state.fault && String(state.fault).toUpperCase() !== 'NONE') || (state.systemState && state.systemState.includes('FAULT')));
+
+    const powerBtn   = document.getElementById('pumpPowerBtn');
+    const badge      = document.getElementById('pumpMotorBadge');
+    const mLabel     = document.getElementById('pumpMotorLabel');
+    const dot        = document.getElementById('pumpMotorDot');
+    const statusLine = document.getElementById('pumpStatusLine');
 
     if (!isSendingCommand) {
-      powerBtn.disabled = false;
-      if (running) {
-        powerBtn.className = 'power-btn active-pulse';
-        document.getElementById('pumpPowerLabel').textContent = 'Stop Pump';
+      if (running && live) {
+        powerBtn.className = 'power-circle is-on';
+        document.getElementById('pumpPowerLabel').textContent = t('stopMotor');
+        badge.className = 'motor-status-pill is-on';
+        dot.style.background = '#2E7D32'; dot.style.boxShadow = '0 0 6px #2E7D32';
+        mLabel.textContent = 'MOTOR RUNNING 🟢';
+        statusLine.textContent = 'Motor relay is energized. Pumping water.';
+        statusLine.style.color = '#2E7D32';
+      } else if (hasFault) {
+        powerBtn.className = 'power-circle is-off';
+        document.getElementById('pumpPowerLabel').textContent = 'Lockout';
+        badge.className = 'motor-status-pill is-fault';
+        dot.style.background = '#D32F2F'; dot.style.boxShadow = '0 0 6px #D32F2F';
+        mLabel.textContent = 'LOCKOUT ACTIVE ⚠️';
+        statusLine.textContent = `Dry-Run: ${state.fault}`;
+        statusLine.style.color = '#D32F2F';
+        playFaultSiren();
       } else {
-        powerBtn.className = 'power-btn off';
-        document.getElementById('pumpPowerLabel').textContent = 'Start Pump';
+        powerBtn.className = 'power-circle is-off';
+        document.getElementById('pumpPowerLabel').textContent = t('startMotor');
+        badge.className = 'motor-status-pill is-off';
+        dot.style.background = 'var(--text-muted)'; dot.style.boxShadow = 'none';
+        mLabel.textContent = live ? 'MOTOR OFF' : 'MOTOR OFFLINE';
+        statusLine.textContent = live ? 'Ready. Tap the button to start.' : 'Unit offline.';
+        statusLine.style.color = 'var(--text-muted)';
       }
     }
 
-    // Status text
-    if (running) {
-      const stateDesc = state.systemState || 'RUNNING';
-      document.getElementById('pumpStatusLine').textContent = `Pump relay is ACTIVE (${stateDesc})`;
-      document.getElementById('pumpStatusLine').style.color = 'var(--green-dark)';
+    // Motor Runtime Tracking
+    const rStats = state.runtimeStats || {};
+    document.getElementById('pumpRuntime').textContent = live && running ? formatDurationMs(rStats.currentSessionMs || 0, true) : '00:00:00';
+    document.getElementById('pumpTodayTotal').textContent = live ? formatDurationMs(rStats.todayTotalMs || 0, false) : '0m';
+
+    if (rStats.autoOffRemainingMs > 0) {
+      document.getElementById('pumpAutoOffText').textContent = `Off in ${formatDurationMs(rStats.autoOffRemainingMs, false)}`;
+      document.getElementById('pumpAutoOffText').style.color = '#0288D1';
     } else {
-      document.getElementById('pumpStatusLine').textContent = live ? 'Pump relay is OFF' : `Pump is OFF (${label})`;
-      document.getElementById('pumpStatusLine').style.color = 'var(--ink-secondary)';
+      document.getElementById('pumpAutoOffText').textContent = 'Continuous';
+      document.getElementById('pumpAutoOffText').style.color = 'var(--text-dark)';
     }
 
-    // Timers
-    document.getElementById('pumpRuntime').textContent   = live && state.runtime    ? state.runtime  : (live ? '00:00:00' : '—');
-    document.getElementById('pumpCountdown').textContent = live && state.countdown > 0 ? `${state.countdown}s` : (live ? 'Inactive' : '—');
-
-    // Fault lockout card
-    const hasFault = live && ((state.fault && String(state.fault).toUpperCase() !== 'NONE') || (state.systemState && state.systemState.includes('FAULT')));
-    document.getElementById('pumpResetCard').style.display = hasFault ? 'block' : 'none';
+    document.getElementById('pumpCountdown').textContent = live && state.countdown > 0 ? `${state.countdown}s` : (live ? '0s' : '—');
+    document.getElementById('pumpResetCard').style.display = hasFault ? 'flex' : 'none';
   });
 
   document.getElementById('pumpPowerBtn').addEventListener('click', async () => {
     if (isSendingCommand) return;
-    const running     = pumpIsRunning(currentState);
+    const running = pumpIsRunning(currentState);
     const targetState = !running;
+    const timerVal = parseInt(document.getElementById('pumpTimerSelect').value) || null;
 
     isSendingCommand = true;
-    const powerBtn = document.getElementById('pumpPowerBtn');
-    const label    = document.getElementById('pumpPowerLabel');
-    label.textContent = targetState ? 'Starting…' : 'Stopping…';
-    toast(targetState ? 'Sending START command to pump…' : 'Sending STOP command to pump…');
-
+    document.getElementById('pumpPowerLabel').textContent = targetState ? 'Starting…' : 'Stopping…';
+    toast(targetState ? 'Starting motor…' : 'Stopping motor…');
     try {
-      await postMotor(targetState);
-      toast(targetState ? 'Pump started successfully' : 'Pump stopped successfully', 'success');
-      currentState.relay       = targetState ? 1 : 0;
+      await postMotor(targetState, timerVal);
+      toast(targetState ? (timerVal ? `Motor started with ${timerVal}m auto-off timer ✓` : 'Motor started ✓') : 'Motor stopped ✓', 'success');
+      currentState.relay = targetState ? 1 : 0;
       currentState.relayStatus = targetState ? 1 : 0;
     } catch (err) {
-      toast(err.message || 'Failed to send command to pump', 'error');
+      toast(err.message || 'Failed', 'error');
     } finally {
       setTimeout(() => { isSendingCommand = false; }, 1000);
     }
   });
 
   async function handleEmergencyStop() {
-    toast('Stopping pump and resetting lockout…');
-    try {
-      await postReset();
-      toast('Lockout reset sent to device', 'success');
-    } catch (err) {
-      toast(err.message || 'Reset failed', 'error');
-    }
+    toast('Resetting lockout…');
+    try { await postReset(); toast('Lockout reset ✓', 'success'); }
+    catch (err) { toast(err.message || 'Reset failed', 'error'); }
   }
 </script>
 </body>
