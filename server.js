@@ -313,6 +313,7 @@ app.get('/api/status', (req, res) => {
       autoOffTimerMinutes: isOnline && activeSession ? activeSession.timerMinutes : null,
       autoOffRemainingMs: isOnline ? autoOffRemainingMs : 0
     },
+    pinVersion: loadUsersData().pinVersion || 1,
     device: {
       mode: 'DIRECT_IOT_SERVER',
       cachedAt: new Date().toISOString(),
@@ -574,7 +575,9 @@ app.get('/api/auth/config', (req, res) => {
   }));
   res.json({
     success: true,
-    isConfigured: Boolean(data.isConfigured && data.users && data.users.length === 2),
+    isConfigured: Boolean(data.isConfigured && data.users && data.users.length > 0),
+    pinVersion: data.pinVersion || 1,
+    pinUpdatedAt: data.pinUpdatedAt || 0,
     users: safeUsers
   });
 });
@@ -611,13 +614,15 @@ app.post('/api/auth/register-initial', (req, res) => {
 
     const newUserData = {
       isConfigured: true,
+      pinVersion: 1,
+      pinUpdatedAt: Date.now(),
       recoveryPin: String(recoveryPin || userPin || '1234').trim(),
       users
     };
 
     saveUsersData(newUserData);
     console.log(`[Auth] Farm Registered: ${users.map(u => `${u.name} (${u.mobile})`).join(', ')}`);
-    res.json({ success: true, message: 'Farm account registered successfully' });
+    res.json({ success: true, message: 'Farm account registered successfully', pinVersion: 1 });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
@@ -664,6 +669,7 @@ app.post('/api/auth/login', (req, res) => {
         mobile: user.mobile,
         email: user.email
       },
+      pinVersion: data.pinVersion || 1,
       token
     });
   } catch (err) {
@@ -768,17 +774,21 @@ app.post('/api/auth/verify-otp-reset', (req, res) => {
       return res.status(401).json({ success: false, error: 'Invalid or expired WhatsApp OTP / Recovery PIN.' });
     }
 
-    data.users[userIdx].passwordHash = hashPassword(newPassword);
+    const newHash = hashPassword(newPassword);
+    data.users[userIdx].passwordHash = newHash;
+    data.recoveryPin = String(newPassword).trim();
+    data.pinVersion = (data.pinVersion || 1) + 1;
+    data.pinUpdatedAt = Date.now();
     saveUsersData(data);
-    console.log(`[Auth] Password successfully reset for: ${user.name} (${user.mobile})`);
+    console.log(`[Auth] PIN updated for farm. New pinVersion: ${data.pinVersion}`);
 
-    res.json({ success: true, message: 'Password updated successfully. You can now login.' });
+    res.json({ success: true, message: 'PIN updated successfully. All other devices will now require the new PIN.', pinVersion: data.pinVersion });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 6. POST /api/auth/update-accounts — Update authorized farmer names and mobile numbers
+// 6. POST /api/auth/update-accounts — Update authorized farmer names, mobile numbers and Security PIN
 app.post('/api/auth/update-accounts', (req, res) => {
   try {
     const { user1, user2, recoveryPin } = req.body;
@@ -800,15 +810,34 @@ app.post('/api/auth/update-accounts', (req, res) => {
       if (user2.mobile !== undefined) data.users[1].mobile = String(user2.mobile).replace(/\D/g, '');
     }
 
-    if (recoveryPin) {
-      data.recoveryPin = String(recoveryPin).trim();
+    let pinChanged = false;
+    if (recoveryPin && String(recoveryPin).trim().length >= 4) {
+      const trimmedPin = String(recoveryPin).trim();
+      if (trimmedPin !== String(data.recoveryPin || '')) {
+        data.recoveryPin = trimmedPin;
+        const newHash = hashPassword(trimmedPin);
+        if (data.users && data.users.length > 0) {
+          data.users.forEach(u => { u.passwordHash = newHash; });
+        }
+        data.pinVersion = (data.pinVersion || 1) + 1;
+        data.pinUpdatedAt = Date.now();
+        pinChanged = true;
+        console.log(`[Auth] Farm PIN changed to new code! New pinVersion: ${data.pinVersion}`);
+      }
     }
 
     data.isConfigured = data.users.length > 0;
     saveUsersData(data);
     console.log(`[Auth] Farm accounts updated successfully`);
 
-    res.json({ success: true, message: 'Settings updated successfully' });
+    res.json({
+      success: true,
+      message: pinChanged 
+        ? 'PIN & settings updated! Other devices will now require the new PIN.'
+        : 'Settings updated successfully',
+      pinVersion: data.pinVersion || 1,
+      pinChanged
+    });
   } catch (err) {
     console.error('[Auth] Error in update-accounts:', err);
     res.status(500).json({ success: false, error: err.message });
@@ -828,3 +857,4 @@ const server = app.listen(PORT, () => {
 
 process.on('SIGINT', () => { server.close(() => process.exit(0)); });
 process.on('SIGTERM', () => { server.close(() => process.exit(0)); });
+

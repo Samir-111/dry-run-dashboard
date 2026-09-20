@@ -184,18 +184,24 @@
         return;
       }
 
-      // Update local storage session with active farmer info
+      // Update current device session with latest name, mobile, and new pinVersion
+      const curAuth = loadAuth() || {};
+      if (name1) curAuth.name = name1;
+      if (mob1) curAuth.mobile = mob1;
+      if (data.pinVersion) curAuth.pinVersion = data.pinVersion;
+      curAuth.isAuth = true;
+      saveAuth(curAuth);
+
       if (name1) {
-        const curAuth = loadAuth() || {};
-        curAuth.name = name1;
-        curAuth.mobile = mob1;
-        curAuth.isAuth = true;
-        localStorage.setItem('pumpAuth', JSON.stringify(curAuth));
         document.getElementById('profileFarmerName').textContent = name1;
         document.getElementById('profileWhatsApp').textContent = `💬 WhatsApp: +91 ${mob1}`;
       }
 
-      toast('Farmer WhatsApp accounts updated successfully! ✓', 'success');
+      if (data.pinChanged) {
+        toast('New Security PIN saved! All other devices will now require the new PIN. 🔒', 'success');
+      } else {
+        toast('Farmer WhatsApp accounts updated successfully! ✓', 'success');
+      }
       loadAccounts();
     } catch (err) {
       toast('Error: ' + err.message, 'error');

@@ -538,6 +538,21 @@ function startPolling(renderFn, intervalMs = 1800) {
     isPolling = true;
     try {
       const { state, reachable, live } = await fetchStatus();
+
+      // Check if Farm PIN was updated by owner (Global Device Revocation)
+      const curAuth = loadAuth();
+      if (curAuth && state && state.pinVersion) {
+        const savedVer = Number(curAuth.pinVersion || 1);
+        const serverVer = Number(state.pinVersion || 1);
+        if (serverVer > savedVer) {
+          console.warn('[Security] Farm PIN updated on server. Revoking this session.');
+          clearAuth();
+          alert('🔒 Security Notice: Farm PIN has been updated by the owner. Please login with the new PIN.');
+          window.location.replace('login.html?reason=pin_updated');
+          return;
+        }
+      }
+
       if (live && isDryRunFault(state)) {
         logAlertIfNew(state.fault, state.systemState);
       }

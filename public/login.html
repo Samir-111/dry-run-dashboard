@@ -452,6 +452,7 @@ body {
         name: selectedUser.name,
         mobile: selectedUser.mobile,
         token: data.token,
+        pinVersion: data.pinVersion || 1,
         isAuth: true,
         loggedInAt: Date.now()
       });
@@ -464,14 +465,14 @@ body {
   }
 
   function handleForgotPin() {
-    const recovery = prompt('Enter your 4-digit Farm Security Recovery PIN or WhatsApp number:');
+    const recovery = prompt('Enter your 4-digit Farm Security Recovery PIN:');
     if (!recovery) return;
 
     fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        identifier: selectedUser ? selectedUser.mobile : recovery,
+        identifier: selectedUser ? selectedUser.mobile : 'Farmer',
         pin: recovery
       })
     })
@@ -481,6 +482,7 @@ body {
         saveAuth({
           name: selectedUser ? selectedUser.name : 'Farmer',
           mobile: selectedUser ? selectedUser.mobile : '',
+          pinVersion: data.pinVersion || 1,
           isAuth: true,
           loggedInAt: Date.now()
         });
@@ -491,6 +493,13 @@ body {
       }
     })
     .catch(err => toast('Error: ' + err.message, 'error'));
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('reason') === 'pin_updated') {
+    setTimeout(() => {
+      toast('🔒 Security Alert: Farm PIN was updated by owner. Please enter the new PIN.', 'error');
+    }, 400);
   }
 
   updateTranslations();
