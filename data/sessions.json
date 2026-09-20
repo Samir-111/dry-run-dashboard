@@ -1,5 +1,21 @@
 [
   {
+    "id": "sess_1789896854281",
+    "startTime": 1789896854281,
+    "stopTime": 1789896871176,
+    "durationMs": 16895,
+    "stopReason": "User Manual Stop",
+    "dateStr": "20/9/2026"
+  },
+  {
+    "id": "sess_1789892035418",
+    "startTime": 1789892035418,
+    "stopTime": 1789892079352,
+    "durationMs": 43934,
+    "stopReason": "User Manual Stop",
+    "dateStr": "20/9/2026"
+  },
+  {
     "id": "sess_1789877105737",
     "startTime": 1789877105737,
     "stopTime": 1789877119698,

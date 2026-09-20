@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1B5E20">
-<meta name="description" content="KisanGuard — Smart Borewell Pump Protection Dashboard for Indian Farmers.">
-<title>Home — KisanGuard</title>
+<meta name="description" content="KisanGuard — Simple Smart Farm Irrigation Dashboard for Farmers.">
+<title>My Farm — KisanGuard</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=21">
 </head>
 <body>
 
@@ -16,409 +16,463 @@
 <header class="top-header">
   <div class="top-header-inner">
     <a href="home.html" class="top-brand">
-      <div class="top-brand-icon" style="background:rgba(255,255,255,0.25); color:#FFFFFF;">
-        <!-- Wheat Grain Icon -->
+      <div class="top-brand-icon">
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22V8"/><path d="M12 18c-2-1-4-1-5 1"/><path d="M12 18c2-1 4-1 5 1"/><path d="M12 14c-2.5-1.5-5-1.5-6 1"/><path d="M12 14c2.5-1.5 5-1.5 6 1"/><path d="M12 10c-3-2-6-1.5-7 1"/><path d="M12 10c3-2 6-1.5 7 1"/></svg>
       </div>
-      <span class="top-brand-name">KisanGuard Pro</span>
+      <span class="top-brand-name" id="brandTitle">KisanGuard</span>
     </a>
 
+    <!-- Desktop Navigation -->
     <div class="desktop-nav" id="desktopNav"></div>
 
     <div class="top-actions">
-      <div class="conn-badge">
-        <span class="conn-dot" id="homeConnDot"></span>
-        <span id="homeConnLabel">Connecting…</span>
-      </div>
-      <button class="btn-header" onclick="doLogout()">Logout</button>
+      <!-- 3-Language Switcher (English | हिंदी | मराठी) -->
+      <div id="langSwitcher"></div>
+      <button class="btn-header" onclick="doLogout()" id="logoutBtn">Logout</button>
     </div>
   </div>
 </header>
 
-<!-- Page Content -->
+<!-- Main Farmer Page Container -->
 <main class="page-container">
 
-  <!-- Fault Banner (hidden unless fault) -->
-  <div id="homeFaultBanner" class="fault-banner" style="display:none;">
+  <!-- 1. Motor Auto-Stopped / Alert Banner -->
+  <div id="dryRunBanner" class="fault-banner" style="display:none;">
     <div class="fault-left">
       <div class="fault-icon">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
       </div>
       <div>
-        <div class="fault-title" id="homeFaultTitle">Dry-Run Protection Active</div>
-        <div class="fault-desc">Motor stopped to prevent damage. Check water level.</div>
+        <div class="fault-title" id="dryRunTitleText">⚠️ Motor Auto-Stopped!</div>
+        <div class="fault-desc" id="dryRunMsgText">Motor was stopped automatically.</div>
       </div>
     </div>
-    <button class="btn btn-red" style="padding:8px 14px; font-size:12px;" onclick="handleReset()">Reset</button>
+    <button class="btn btn-red" style="padding:10px 18px; font-size:13px; font-weight:800;" onclick="handleReset()" id="resetBtn">Reset</button>
   </div>
 
-  <!-- Greeting Card with Motor Status -->
+  <!-- 2. Main Farm & Motor Control Hero Card -->
   <div class="greeting-card">
     <div class="greeting-top">
-      <div style="display:flex; align-items:center; gap:12px;">
-        <!-- Farmer Avatar Icon -->
-        <div style="width:44px; height:44px; border-radius:50%; background:rgba(255,255,255,0.25); border:2px solid rgba(255,255,255,0.4); display:flex; align-items:center; justify-content:center; color:#FFFFFF;">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9c0-3 2.5-5 6-5s6 2 6 5"/><path d="M5 9c0 1.5 1 2.5 3 2.5h8c2 0 3-1 3-2.5"/><circle cx="12" cy="13" r="3.5"/><path d="M4 21c0-3 3.5-4.5 8-4.5s8 1.5 8 4.5"/></svg>
-        </div>
-        <div>
-          <div class="greeting-hello" id="homeGreetTime">Good morning! ☀️</div>
-          <div class="greeting-name" id="homeGreeting">Hello, Farmer</div>
-        </div>
+      <div>
+        <div class="greeting-hello" id="farmTitle">🌾 My Farm</div>
+        <div class="greeting-name" id="farmerGreeting">Hello, Farmer</div>
       </div>
-      <div class="greeting-date" id="homeDateLabel"></div>
+
+      <!-- Real System Online / Offline Status Ribbon -->
+      <div class="sys-status-ribbon is-online" id="sysStatusRibbon">
+        <span class="status-dot-pulse"></span>
+        <span id="sysStatusLabel">System Online</span>
+      </div>
     </div>
 
-    <!-- Motor Status Row -->
-    <div class="motor-status-hero">
-      <div class="motor-status-dot" id="homeMotorDot"></div>
+    <!-- Motor Status Heading -->
+    <div class="motor-status-hero" id="motorStatusHeroBox" style="margin-top:14px;">
+      <div class="motor-status-dot" id="motorStatusDot"></div>
       <div style="flex:1;">
-        <div class="motor-status-text" id="homeMotorText">Motor is Off</div>
-        <div class="motor-status-sub" id="homeStatusDesc">Tap below to start pumping water</div>
+        <div class="motor-status-text" id="motorStatusText">Motor is Stopped</div>
+        <div class="motor-status-sub" id="motorStatusDesc">Ready to start motor</div>
       </div>
     </div>
 
-    <!-- Auto-Off Timer Select -->
-    <div class="timer-select-wrap">
-      <span class="timer-select-label">⏱️ Irrigation Auto-Off Timer:</span>
-      <select id="timerSelect" class="timer-select">
-        <option value="0">Off (Continuous Run)</option>
-        <option value="15">15 Minutes</option>
-        <option value="30">30 Minutes</option>
-        <option value="60">1 Hour</option>
-        <option value="120">2 Hours</option>
-      </select>
+    <!-- Farmer Auto-Off Irrigation Timer (Presets + Custom Input) -->
+    <div class="farmer-timer-card" style="margin-top:14px;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:13px; font-weight:800; color:#FFFFFF;" id="timerLabel">⏱️ Irrigation Auto-Off Timer:</span>
+        <span style="font-size:12px; font-weight:900; background:rgba(255,255,255,0.25); color:#FFFFFF; padding:2px 8px; border-radius:10px;" id="selectedTimerDisplay">Continuous</span>
+      </div>
+
+      <!-- Quick Preset Chips -->
+      <div class="timer-chip-group">
+        <button class="timer-chip active" id="chip0" onclick="setTimerPreset(0)">Continuous</button>
+        <button class="timer-chip" id="chip15" onclick="setTimerPreset(15)">15m</button>
+        <button class="timer-chip" id="chip30" onclick="setTimerPreset(30)">30m</button>
+        <button class="timer-chip" id="chip45" onclick="setTimerPreset(45)">45m</button>
+        <button class="timer-chip" id="chip60" onclick="setTimerPreset(60)">1h</button>
+        <button class="timer-chip" id="chip120" onclick="setTimerPreset(120)">2h</button>
+        <button class="timer-chip" id="chipCustom" onclick="toggleCustomTimer()">✏️ Custom</button>
+      </div>
+
+      <!-- Custom Stepper Input (Shows when farmer chooses custom time: Hours + Minutes) -->
+      <div class="custom-timer-stepper" id="customStepperBox" style="display:none;">
+        <div class="stepper-unit-group">
+          <button class="stepper-btn" onclick="stepHours(-1)" type="button" title="Minus 1 Hour">−</button>
+          <input type="number" id="customHoursInput" class="stepper-input" value="0" min="0" max="12" oninput="onCustomTimeChange()">
+          <span class="stepper-unit-label" id="lblHoursUnit">hr</span>
+          <button class="stepper-btn" onclick="stepHours(1)" type="button" title="Plus 1 Hour">+</button>
+        </div>
+
+        <div class="stepper-unit-group">
+          <button class="stepper-btn" onclick="stepMinutes(-5)" type="button" title="Minus 5 Minutes">−</button>
+          <input type="number" id="customMinutesInput" class="stepper-input" value="45" min="0" max="59" step="5" oninput="onCustomTimeChange()">
+          <span class="stepper-unit-label" id="lblMinutesUnit">min</span>
+          <button class="stepper-btn" onclick="stepMinutes(5)" type="button" title="Plus 5 Minutes">+</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Power Button -->
-    <button class="greeting-power-btn" id="homePowerBtn" style="margin-top:12px;">
-      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/></svg>
+    <!-- Big Farmer Start / Stop Motor Power Button -->
+    <button class="farmer-power-btn is-start" id="homePowerBtn" style="margin-top:14px;">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.8"><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/></svg>
       <span id="homePowerBtnText">Start Motor</span>
     </button>
   </div>
 
-  <!-- Quick Stats Grid -->
-  <div class="stat-grid">
+  <!-- 3. Key Motor Runtime Metrics Grid -->
+  <div class="stat-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));">
 
+    <!-- Today's Motor Runtime -->
     <div class="stat-tile">
       <div class="stat-tile-header">
-        <span class="stat-tile-label">Water</span>
-        <div class="stat-tile-icon" style="background:#E1F5FE; color:#0288D1;">
-          <!-- Water Drop Icon -->
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-        </div>
-      </div>
-      <div class="stat-tile-value" id="cardWaterVal">—</div>
-      <div class="stat-tile-hint" id="cardWaterRaw">Checking probe…</div>
-    </div>
-
-    <div class="stat-tile">
-      <div class="stat-tile-header">
-        <span class="stat-tile-label">Motor</span>
+        <span class="stat-tile-label" id="lblTodayWatering">Today's Motor Runtime</span>
         <div class="stat-tile-icon" style="background:#E8F5E9; color:#2E7D32;">
-          <!-- Submersible Borewell Pump Icon -->
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M6 18h12M12 18V7M9 7h6M12 7V4M12 4H7v3"/><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/></svg>
-        </div>
-      </div>
-      <div class="stat-tile-value" id="cardRelayVal">Off</div>
-      <div class="stat-tile-hint">Relay GPIO 4</div>
-    </div>
-
-    <div class="stat-tile">
-      <div class="stat-tile-header">
-        <span class="stat-tile-label">Active Run</span>
-        <div class="stat-tile-icon" style="background:#FFF8E1; color:#F57F17;">
-          <!-- Timer Clock Icon -->
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
         </div>
       </div>
-      <div class="stat-tile-value" id="cardRuntimeVal" style="font-size:17px; color:#2E7D32;">00:00:00</div>
-      <div class="stat-tile-hint">Active session</div>
+      <div class="stat-tile-value" id="valTodayWatering" style="color:#2E7D32; font-size:24px;">0m</div>
+      <div class="stat-tile-hint" id="hintTodayWatering">Total motor running time today</div>
     </div>
 
+    <!-- Current Motor Runtime Session -->
     <div class="stat-tile">
       <div class="stat-tile-header">
-        <span class="stat-tile-label">Today Total</span>
-        <div class="stat-tile-icon" style="background:#E8F5E9; color:#2E7D32;">
-          <!-- Wheat Stalk Icon -->
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22V8"/><path d="M12 18c-2-1-4-1-5 1"/><path d="M12 18c2-1 4-1 5 1"/><path d="M12 14c-2.5-1.5-5-1.5-6 1"/><path d="M12 14c2.5-1.5 5-1.5 6 1"/></svg>
+        <span class="stat-tile-label" id="lblActiveSession">Current Motor Runtime</span>
+        <div class="stat-tile-icon" style="background:#FFF8E1; color:#F57F17;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
         </div>
       </div>
-      <div class="stat-tile-value" id="cardTodayRuntimeVal" style="font-size:17px;">0m</div>
-      <div class="stat-tile-hint">Accumulated today</div>
+      <div class="stat-tile-value" id="valActiveSession" style="color:#F57F17; font-family:'Nunito',monospace; font-size:24px;">00:00:00</div>
+      <div class="stat-tile-hint" id="hintActiveSession">Active session duration</div>
     </div>
 
   </div>
 
-  <!-- Two Column Responsive Desktop Grid -->
-  <div class="grid-two-col">
-
-    <!-- Motor ON Time Analytics Card -->
-    <div class="card">
-      <div class="card-title">
-        <div class="card-title-icon" style="background:#FFF8E1; color:#F57F17;">
+  <!-- 4. Today's Motor Activity History -->
+  <div class="card" style="margin-top:16px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+      <div class="card-title" style="margin-bottom:0;">
+        <div class="card-title-icon" style="background:#E8F5E9; color:#2E7D32;">
           <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
         </div>
-        Motor ON Time &amp; Duration
+        <span id="titleActivityHistory">Today's Motor Activity History</span>
       </div>
-
-      <div class="info-list">
-        <div class="info-row">
-          <div class="info-label">
-            <span class="info-label-dot" style="background:#2E7D32;"></span>
-            Current Session ON Time
-          </div>
-          <div class="info-value" id="runtimeCurrentSession" style="color:#2E7D32;">00:00:00</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">
-            <span class="info-label-dot" style="background:#0288D1;"></span>
-            Total Motor ON Today
-          </div>
-          <div class="info-value" id="runtimeToday">0m</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">
-            <span class="info-label-dot" style="background:#F57F17;"></span>
-            30-Day Total Motor ON
-          </div>
-          <div class="info-value" id="runtimeMonth">0m</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">
-            <span class="info-label-dot" style="background:#8A9B8A;"></span>
-            Auto-Off Timer Status
-          </div>
-          <div class="info-value" id="runtimeAutoOff">Continuous</div>
-        </div>
-      </div>
-
-      <a href="dashboard.html" class="btn btn-outline" style="width:100%; margin-top:14px;">
-        View Motor Session Logs →
-      </a>
+      <a href="dashboard.html" class="btn btn-outline" style="padding:6px 14px; font-size:12.5px; font-weight:800;" id="btnViewAllHistory">View All History →</a>
     </div>
 
-    <!-- System Overview Card -->
-    <div class="card">
-      <div class="card-title">
-        <div class="card-title-icon" style="background:#E8F5E9; color:#2E7D32;">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg>
-        </div>
-        System Overview
+    <div id="recentActivityList" style="display:flex; flex-direction:column; gap:8px;">
+      <div style="text-align:center; padding:20px; color:var(--text-muted); font-size:13px;" id="txtNoActivity">
+        Loading motor activity…
       </div>
-
-      <div class="info-list">
-        <div class="info-row">
-          <div class="info-label">
-            <span class="info-label-dot" style="background:#0288D1;"></span>
-            Conductivity ADC
-          </div>
-          <div class="info-value" id="overviewAdc">1850 ADC</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">
-            <span class="info-label-dot" style="background:#F57F17;"></span>
-            Trip Threshold
-          </div>
-          <div class="info-value" id="overviewThreshold">1500 ADC</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">
-            <span class="info-label-dot" style="background:#2E7D32;"></span>
-            GSM Signal
-          </div>
-          <div class="info-value" id="overviewGsm">25 / 31</div>
-        </div>
-        <div class="info-row">
-          <div class="info-label">
-            <span class="info-label-dot" style="background:#8A9B8A;"></span>
-            Reset Delay
-          </div>
-          <div class="info-value" id="overviewCountdown">Inactive</div>
-        </div>
-      </div>
-
-      <a href="pump.html" class="btn btn-green" style="width:100%; margin-top:14px;">
-        Open Pump Control Panel →
-      </a>
     </div>
-
   </div>
 
 </main>
 
-<!-- Bottom Navigation Container -->
-<div id="bottomNav"></div>
+<!-- Bottom Mobile Navigation Bar -->
+<nav class="bottom-nav" id="bottomNav"></nav>
 
-<script src="js/app.js?v=16"></script>
+<script src="js/app.js?v=21"></script>
 <script>
   requireAuth();
   injectNav('home');
 
-  // Greeting
+  // Greeting & Farmer Name
   const auth = loadAuth();
-  const hour = new Date().getHours();
-  let greetEmoji = '☀️', greetText = 'Good morning!';
-  if (hour >= 12 && hour < 17) { greetEmoji = '🌤️'; greetText = 'Good afternoon!'; }
-  else if (hour >= 17) { greetEmoji = '🌙'; greetText = 'Good evening!'; }
+  const farmerName = (auth && auth.name) ? auth.name : 'Farmer';
+  document.getElementById('farmerGreeting').textContent = `${farmerName}`;
+  document.getElementById('farmTitle').textContent = `🌾 ${t('myFarm')}`;
+  document.getElementById('brandTitle').textContent = t('brand');
+  document.getElementById('logoutBtn').textContent = t('logout');
 
-  document.getElementById('homeGreetTime').textContent = `${greetText} ${greetEmoji}`;
-  if (auth && auth.name) {
-    document.getElementById('homeGreeting').textContent = `Hello, ${auth.name}`;
+  // Timer state
+  let selectedTimerMinutes = 0; // 0 = continuous
+  let customHours = 0;
+  let customMinutes = 45;
+
+  function setTimerPreset(mins) {
+    selectedTimerMinutes = mins;
+    document.getElementById('customStepperBox').style.display = 'none';
+
+    // Sync custom input fields with preset
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    document.getElementById('customHoursInput').value = h;
+    document.getElementById('customMinutesInput').value = m || (mins === 0 ? 0 : m);
+    customHours = h;
+    customMinutes = m;
+
+    // Update active class on chips
+    ['0', '15', '30', '45', '60', '120', 'Custom'].forEach(id => {
+      const el = document.getElementById('chip' + id);
+      if (el) el.classList.remove('active');
+    });
+
+    const activeEl = document.getElementById('chip' + mins);
+    if (activeEl) activeEl.classList.add('active');
+
+    updateTimerDisplay();
   }
-  document.getElementById('homeDateLabel').textContent = new Date().toLocaleDateString('en-IN', {
-    weekday: 'short', day: 'numeric', month: 'short'
-  });
+
+  function toggleCustomTimer() {
+    ['0', '15', '30', '45', '60', '120'].forEach(id => {
+      const el = document.getElementById('chip' + id);
+      if (el) el.classList.remove('active');
+    });
+    document.getElementById('chipCustom').classList.add('active');
+    document.getElementById('customStepperBox').style.display = 'flex';
+    onCustomTimeChange();
+  }
+
+  function stepHours(delta) {
+    const input = document.getElementById('customHoursInput');
+    let val = (parseInt(input.value) || 0) + delta;
+    if (val < 0) val = 0;
+    if (val > 12) val = 12;
+    input.value = val;
+    customHours = val;
+    onCustomTimeChange();
+  }
+
+  function stepMinutes(delta) {
+    const input = document.getElementById('customMinutesInput');
+    let val = (parseInt(input.value) || 0) + delta;
+    if (val < 0) val = 0;
+    if (val > 59) val = 59;
+    input.value = val;
+    customMinutes = val;
+    onCustomTimeChange();
+  }
+
+  function onCustomTimeChange() {
+    const hInput = document.getElementById('customHoursInput');
+    const mInput = document.getElementById('customMinutesInput');
+    let h = parseInt(hInput.value) || 0;
+    let m = parseInt(mInput.value) || 0;
+    if (h < 0) h = 0;
+    if (h > 12) h = 12;
+    if (m < 0) m = 0;
+    if (m > 59) m = 59;
+    hInput.value = h;
+    mInput.value = m;
+    customHours = h;
+    customMinutes = m;
+    selectedTimerMinutes = (h * 60) + m;
+    updateTimerDisplay();
+  }
+
+  function formatTimeDuration(mins) {
+    if (!mins || mins === 0) return t('continuous');
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    const hUnit = t('hoursShort') || 'hr';
+    const mUnit = t('minutesShort') || 'min';
+    if (h > 0 && m > 0) {
+      return `${h}${hUnit} ${m}${mUnit}`;
+    } else if (h > 0) {
+      return `${h} ${t('hoursUnit') || 'Hours'}`;
+    } else {
+      return `${m} ${t('minutesUnit') || 'Minutes'}`;
+    }
+  }
+
+  function updateTimerDisplay() {
+    const d = document.getElementById('selectedTimerDisplay');
+    if (d) d.textContent = formatTimeDuration(selectedTimerMinutes);
+  }
+
+  // Translate static labels on initial load
+  function updateStaticLabels() {
+    document.getElementById('lblTodayWatering').textContent = t('todayWateringTime');
+    document.getElementById('lblActiveSession').textContent = t('activeSessionTime');
+    document.getElementById('titleActivityHistory').textContent = t('activityHistory');
+    document.getElementById('timerLabel').textContent = `⏱️ ${t('autoOffTimer')}:`;
+    document.getElementById('chip0').textContent = t('continuous');
+    document.getElementById('chipCustom').textContent = `✏️ ${t('customTimer')}`;
+    document.getElementById('lblHoursUnit').textContent = t('hoursShort') || 'hr';
+    document.getElementById('lblMinutesUnit').textContent = t('minutesShort') || 'min';
+    document.getElementById('resetBtn').textContent = t('resetLockout');
+    updateTimerDisplay();
+  }
+  updateStaticLabels();
 
   let currentState = {};
   let isSending = false;
   let localSessionMs = 0;
   let localTodayMs = 0;
-  let localMonthMs = 0;
 
+  // Poll status every 1.8s
   startPolling((state, reachable, live) => {
     currentState = state;
 
     const isRunning = pumpIsRunning(state);
-    const hasFault = state.fault && String(state.fault).toUpperCase() !== 'NONE';
+    const hasFault = isDryRunFault(state);
 
-    // Connection badge
-    const dot = document.getElementById('homeConnDot');
-    const lbl = document.getElementById('homeConnLabel');
-    if (live || isRunning) { dot.className = 'conn-dot live'; lbl.textContent = 'Connected'; }
-    else { dot.className = reachable ? 'conn-dot' : 'conn-dot down'; lbl.textContent = reachable ? 'Standby' : 'Offline'; }
-
-    // Fault banner
-    const banner = document.getElementById('homeFaultBanner');
-    if (hasFault) {
-      banner.style.display = 'flex';
-      document.getElementById('homeFaultTitle').textContent = `Alert: ${state.fault}`;
-      playFaultSiren();
+    // 1. Prominent System Online / Offline Status
+    const ribbon = document.getElementById('sysStatusRibbon');
+    const ribbonLbl = document.getElementById('sysStatusLabel');
+    if (live || isRunning) {
+      ribbon.className = 'sys-status-ribbon is-online';
+      ribbonLbl.textContent = `🟢 ${t('systemOnline')}`;
     } else {
-      banner.style.display = 'none';
+      ribbon.className = 'sys-status-ribbon is-offline';
+      ribbonLbl.textContent = `🔴 ${t('systemOffline')}`;
     }
 
-    // Motor status in hero
-    const motorDot = document.getElementById('homeMotorDot');
-    const motorText = document.getElementById('homeMotorText');
-    const desc = document.getElementById('homeStatusDesc');
+    // 2. Fault/Trip Alert Banner (If lockout active)
+    const dryRunBanner = document.getElementById('dryRunBanner');
+    if (hasFault) {
+      dryRunBanner.style.display = 'flex';
+      document.getElementById('dryRunTitleText').textContent = t('dryRunTitle');
+      document.getElementById('dryRunMsgText').textContent = t('dryRunMsg');
+      playFaultSiren();
+    } else {
+      dryRunBanner.style.display = 'none';
+    }
+
+    // 3. Motor Status & Large Button
+    const motorDot = document.getElementById('motorStatusDot');
+    const motorText = document.getElementById('motorStatusText');
+    const motorDesc = document.getElementById('motorStatusDesc');
+    const heroBox = document.getElementById('motorStatusHeroBox');
     const btn = document.getElementById('homePowerBtn');
     const btnText = document.getElementById('homePowerBtnText');
 
     if (!isSending) {
       if (isRunning) {
+        if (heroBox) heroBox.classList.add('is-running');
         motorDot.className = 'motor-status-dot running';
-        motorText.textContent = t('motorRunning') + ' 🟢';
-        desc.textContent = 'Pumping water actively. Relay is energized.';
-        btn.className = 'greeting-power-btn is-stop';
+        motorText.textContent = `${t('motorRunning')} 🟢`;
+        motorDesc.textContent = t('systemReady');
+        btn.className = 'farmer-power-btn is-stop';
+        btn.disabled = false;
         btnText.textContent = t('stopMotor');
       } else if (hasFault) {
+        if (heroBox) heroBox.classList.remove('is-running');
         motorDot.className = 'motor-status-dot fault';
-        motorText.textContent = t('lockoutActive') + ' ⚠️';
-        desc.textContent = `Pump stopped: ${state.fault}. Check water level.`;
-        btn.className = 'greeting-power-btn';
-        btnText.textContent = t('reset');
-      } else {
+        motorText.textContent = `${t('dryRunTitle')}`;
+        motorDesc.textContent = t('dryRunSub');
+        btn.className = 'farmer-power-btn is-start';
+        btn.disabled = false;
+        btnText.textContent = t('resetLockout');
+      } else if (!live && !reachable) {
+        if (heroBox) heroBox.classList.remove('is-running');
         motorDot.className = 'motor-status-dot';
-        motorText.textContent = t('motorOff');
-        desc.textContent = 'Tap below to start pumping water';
-        btn.className = 'greeting-power-btn';
+        motorText.textContent = `${t('systemOffline')}`;
+        motorDesc.textContent = t('systemOfflineDesc');
+        btn.className = 'farmer-power-btn is-start';
+        btn.disabled = true;
+        btnText.textContent = t('startMotor');
+      } else {
+        if (heroBox) heroBox.classList.remove('is-running');
+        motorDot.className = 'motor-status-dot';
+        motorText.textContent = `${t('motorStopped')}`;
+        motorDesc.textContent = t('systemReady');
+        btn.className = 'farmer-power-btn is-start';
+        btn.disabled = false;
         btnText.textContent = t('startMotor');
       }
     }
 
-    // Stat tiles
-    const waterPresent = isWaterPresent(state.waterStatus, state.waterRaw);
-    const waterVal = document.getElementById('cardWaterVal');
-    if (waterPresent === true || isRunning) { waterVal.textContent = t('waterPresent') + ' ✓'; waterVal.style.color = '#2E7D32'; }
-    else if (waterPresent === false) { waterVal.textContent = t('waterAbsent') + ' ✗'; waterVal.style.color = '#D32F2F'; }
-    else { waterVal.textContent = '—'; waterVal.style.color = ''; }
-
-    const raw = state.waterRaw !== undefined && state.waterRaw !== null ? state.waterRaw : (isRunning ? 1850 : '—');
-    document.getElementById('cardWaterRaw').textContent = `${raw} ADC`;
-
-    const relayVal = document.getElementById('cardRelayVal');
-    relayVal.textContent = isRunning ? 'Running' : 'Off';
-    relayVal.style.color = isRunning ? '#2E7D32' : '';
-
-    // Runtime Stats & Motor ON time tracking
+    // 4. Motor Runtime Durations
     const rStats = state.runtimeStats || {};
     localSessionMs = rStats.currentSessionMs || 0;
     localTodayMs = rStats.todayTotalMs || 0;
-    localMonthMs = rStats.monthTotalMs || 0;
 
-    document.getElementById('cardRuntimeVal').textContent = formatDurationMs(localSessionMs, true);
-    document.getElementById('cardTodayRuntimeVal').textContent = formatDurationMs(localTodayMs, false);
-
-    document.getElementById('runtimeCurrentSession').textContent = formatDurationMs(localSessionMs, true);
-    document.getElementById('runtimeToday').textContent = formatDurationMs(localTodayMs, false);
-    document.getElementById('runtimeMonth').textContent = formatDurationMs(localMonthMs, false);
-
-    if (rStats.autoOffRemainingMs > 0) {
-      document.getElementById('runtimeAutoOff').textContent = `Auto-Off in ${formatDurationMs(rStats.autoOffRemainingMs, false)}`;
-      document.getElementById('runtimeAutoOff').style.color = '#0288D1';
-    } else {
-      document.getElementById('runtimeAutoOff').textContent = 'Continuous';
-      document.getElementById('runtimeAutoOff').style.color = 'var(--text-dark)';
-    }
-
-    // Overview
-    document.getElementById('overviewAdc').textContent = `${raw} ADC`;
-    document.getElementById('overviewThreshold').textContent = `${state.waterThreshold || 1500} ADC`;
-    document.getElementById('overviewCountdown').textContent = state.countdown > 0 ? `${state.countdown}s` : 'Inactive';
+    document.getElementById('valTodayWatering').textContent = formatDurationMs(localTodayMs, false);
+    document.getElementById('valActiveSession').textContent = formatDurationMs(localSessionMs, true);
   });
 
-  // Smooth 1-second client ticker for active motor runtime
+  // Client ticker for smooth 1-second counting
   setInterval(() => {
     if (pumpIsRunning(currentState)) {
       localSessionMs += 1000;
       localTodayMs += 1000;
-      localMonthMs += 1000;
-      document.getElementById('cardRuntimeVal').textContent = formatDurationMs(localSessionMs, true);
-      document.getElementById('runtimeCurrentSession').textContent = formatDurationMs(localSessionMs, true);
-      document.getElementById('cardTodayRuntimeVal').textContent = formatDurationMs(localTodayMs, false);
-      document.getElementById('runtimeToday').textContent = formatDurationMs(localTodayMs, false);
-      document.getElementById('runtimeMonth').textContent = formatDurationMs(localMonthMs, false);
+      document.getElementById('valActiveSession').textContent = formatDurationMs(localSessionMs, true);
+      document.getElementById('valTodayWatering').textContent = formatDurationMs(localTodayMs, false);
     }
   }, 1000);
 
-  // Power button click
+  // Power Button Click Handler
   document.getElementById('homePowerBtn').addEventListener('click', async () => {
     if (isSending) return;
+    
+    // If dry-run lockout is active, button resets lockout
+    if (isDryRunFault(currentState)) {
+      await handleReset();
+      return;
+    }
+
     const running = pumpIsRunning(currentState);
     const target = !running;
-    const timerVal = parseInt(document.getElementById('timerSelect').value) || null;
+    const timerVal = selectedTimerMinutes > 0 ? selectedTimerMinutes : null;
 
     isSending = true;
-    document.getElementById('homePowerBtnText').textContent = target ? 'Starting…' : 'Stopping…';
-    toast(target ? 'Starting motor…' : 'Stopping motor…');
+    document.getElementById('homePowerBtnText').textContent = target ? t('starting') : t('stopping');
+    toast(target ? t('starting') : t('stopping'));
+
     try {
       await postMotor(target, timerVal);
-      toast(target ? (timerVal ? `Motor started with ${timerVal}m auto-off timer ✓` : 'Motor started ✓') : 'Motor stopped ✓', 'success');
+      toast(target ? (timerVal ? `${t('started')} (${timerVal} ${t('minutesUnit')}) ✓` : `${t('started')} ✓`) : `${t('stopped')} ✓`, 'success');
       currentState.relay = target;
       currentState.relayStatus = target;
       currentState.pumpStatus = target ? 'RUNNING' : 'OFF';
       currentState.systemState = target ? 'RUNNING' : 'OFF';
       if (target) localSessionMs = 0;
     } catch (err) {
-      toast(err.message || 'Failed to toggle motor', 'error');
+      toast(err.message || 'Failed', 'error');
     } finally {
-      setTimeout(() => { isSending = false; }, 800);
+      setTimeout(() => { isSending = false; }, 600);
     }
   });
 
+  // Reset Lockout Handler
   async function handleReset() {
-    toast('Resetting lockout…');
-    try { await postReset(); toast('Lockout reset ✓', 'success'); }
-    catch (err) { toast(err.message || 'Reset failed', 'error'); }
-  }
-
-  async function loadGsm() {
-    const gsm = await fetchGSMStatus();
-    if (gsm && gsm.signal !== undefined) {
-      document.getElementById('overviewGsm').textContent = `${gsm.signal} / 31`;
+    toast(t('resetLockout') + '…');
+    try {
+      await postReset();
+      toast(t('resetLockout') + ' ✓', 'success');
+      currentState.fault = 'NONE';
+      currentState.systemState = 'IDLE';
+      document.getElementById('dryRunBanner').style.display = 'none';
+    } catch (err) {
+      toast(err.message || 'Failed', 'error');
     }
   }
-  loadGsm();
+
+  // Load Recent Activity History
+  async function loadRecentActivity() {
+    const listEl = document.getElementById('recentActivityList');
+    const data = await fetchSessions(5);
+    if (!data || !data.sessions || data.sessions.length === 0) {
+      listEl.innerHTML = `<div style="text-align:center; padding:18px; color:var(--text-muted); font-size:13px;">${t('noActivityYet')}</div>`;
+      return;
+    }
+
+    let html = '';
+    data.sessions.slice(0, 4).forEach(s => {
+      const timeStr = new Date(s.startTime).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+      const durationStr = formatDurationMs(s.durationMs, false);
+      const isDryStop = s.stopReason && (s.stopReason.includes('Fault') || s.stopReason.includes('Dry') || s.stopReason.includes('Water'));
+      const icon = isDryStop ? '⚠️' : '💧';
+      const badgeText = isDryStop ? t('stoppedWaterRanOut') : `💧 ${t('stopped')} (${durationStr})`;
+      const badgeBg = isDryStop ? '#FFEBEE' : '#E8F5E9';
+      const badgeColor = isDryStop ? '#D32F2F' : '#2E7D32';
+
+      html += `
+        <div class="farmer-history-item">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <div class="hist-icon" style="background:${badgeBg}; color:${badgeColor}; font-size:17px;">${icon}</div>
+            <div>
+              <div style="font-size:13.5px; font-weight:800; color:var(--text-dark);">${badgeText}</div>
+              <div style="font-size:11.5px; color:var(--text-muted);">${timeStr}</div>
+            </div>
+          </div>
+          <span style="font-size:13px; font-weight:800; color:${badgeColor};">${durationStr}</span>
+        </div>`;
+    });
+    listEl.innerHTML = html;
+  }
+  loadRecentActivity();
+  setInterval(loadRecentActivity, 6000);
 </script>
 </body>
 </html>

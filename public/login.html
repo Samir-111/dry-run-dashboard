@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1B5E20">
-<meta name="description" content="KisanGuard — Smart Borewell Pump Protection for Indian Farmers.">
+<meta name="description" content="KisanGuard — Simple Smart Farm Irrigation Login for Farmers.">
 <title>Sign In — KisanGuard</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=20">
 <style>
 body {
-  background: var(--bg);
+  background: linear-gradient(135deg, rgba(244, 247, 242, 0.92), rgba(234, 245, 228, 0.94)), url('assets/farm_hero_bg.jpg') center/cover fixed no-repeat;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -26,298 +26,143 @@ body {
   padding: 24px 16px;
 }
 
-/* Hero Banner */
-.login-hero {
+.login-box {
   width: 100%;
   max-width: 420px;
-  background: linear-gradient(145deg, #1B5E20 0%, #2E7D32 40%, #43A047 100%);
-  border-radius: var(--r-xl) var(--r-xl) 0 0;
-  padding: 36px 28px 28px;
+  background: var(--bg-white);
+  border-radius: var(--r-xl);
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(27, 94, 32, 0.15), 0 2px 8px rgba(0,0,0,0.06);
+  border: 1px solid var(--border-light);
+}
+
+.login-header {
+  background: linear-gradient(135deg, rgba(20, 60, 24, 0.92) 0%, rgba(46, 125, 50, 0.86) 100%), url('assets/farm_hero_bg.jpg') center/cover no-repeat;
+  padding: 34px 24px;
   text-align: center;
   color: #FFFFFF;
   position: relative;
-  overflow: hidden;
 }
 
-.login-hero::before {
-  content: '';
-  position: absolute;
-  top: -50px; right: -30px;
-  width: 180px; height: 180px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.06);
-}
-
-.login-hero-logo {
-  width: 64px; height: 64px;
+.login-icon-box {
+  width: 60px;
+  height: 60px;
   border-radius: 18px;
   background: rgba(255,255,255,0.2);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin: 0 auto 14px;
-  border: 2px solid rgba(255,255,255,0.25);
+  margin: 0 auto 12px;
+  font-size: 28px;
+  border: 2px solid rgba(255,255,255,0.3);
 }
 
-.login-hero h1 {
-  font-size: 24px;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-  margin-bottom: 4px;
+.login-body {
+  padding: 24px;
 }
 
-.login-hero p {
-  font-size: 13px;
-  opacity: 0.8;
-  font-weight: 600;
-}
-
-.login-hero-features {
+.farmer-lang-login {
   display: flex;
   justify-content: center;
-  gap: 8px;
-  margin-top: 16px;
-  flex-wrap: wrap;
-}
-
-.login-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  background: rgba(255,255,255,0.15);
-  border-radius: 20px;
-  padding: 4px 10px;
-  font-size: 11px;
-  font-weight: 700;
-}
-
-/* Form Card */
-.login-form-card {
-  width: 100%;
-  max-width: 420px;
-  background: var(--bg-white);
-  border-radius: 0 0 var(--r-xl) var(--r-xl);
-  padding: 24px 24px 28px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.08);
-  border: 1px solid var(--border-light);
-  border-top: none;
-}
-
-/* Auth Tabs */
-.auth-tabs {
-  display: flex;
-  background: var(--bg);
-  border-radius: var(--r-sm);
-  padding: 3px;
+  gap: 6px;
   margin-bottom: 20px;
-  gap: 3px;
-}
-
-.auth-tab {
-  flex: 1;
-  padding: 9px 8px;
-  font-family: inherit;
-  font-size: 13px;
-  font-weight: 800;
-  border: none;
-  background: transparent;
-  color: var(--text-muted);
-  border-radius: 7px;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.auth-tab.active {
-  background: var(--green);
-  color: #FFFFFF;
-  box-shadow: 0 2px 8px rgba(46,125,50,0.25);
-}
-
-/* Fields */
-.auth-field {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  margin-bottom: 14px;
-}
-
-.auth-field label {
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--text-sec);
-}
-
-.auth-field .input {
-  padding: 11px 14px;
-}
-
-.field-error {
-  font-size: 11px;
-  color: var(--danger);
-  font-weight: 600;
-  display: none;
-}
-
-.field-error.show { display: block; }
-
-.auth-panel { display: none; }
-.auth-panel.visible { display: block; }
-
-.auth-divider {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 16px 0;
-}
-
-.auth-divider::before, .auth-divider::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-.auth-divider span {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--text-muted);
-}
-
-/* Tagline footer */
-.login-footer {
-  text-align: center;
-  padding: 20px 16px;
-  font-size: 12px;
-  color: var(--text-muted);
-  font-weight: 600;
 }
 </style>
 </head>
 <body>
 
 <div class="login-page">
+  <div class="login-box">
 
-  <!-- Hero Banner -->
-  <div class="login-hero">
-    <div class="login-hero-logo">
-      <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#FFFFFF" stroke-width="2.5"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-    </div>
-    <h1>KisanGuard</h1>
-    <p>Smart Borewell Protection Platform</p>
-    <div class="login-hero-features">
-      <span class="login-chip">⚡ ESP32 IoT</span>
-      <span class="login-chip">🛡️ Dry-Run Guard</span>
-      <span class="login-chip">📱 SMS Alerts</span>
-    </div>
-  </div>
-
-  <!-- Form Card -->
-  <div class="login-form-card">
-
-    <div class="auth-tabs" role="tablist">
-      <button class="auth-tab active" id="tabSignIn" onclick="switchTab('signin')">Sign In</button>
-      <button class="auth-tab" id="tabSignUp" onclick="switchTab('signup')">Register</button>
+    <!-- Hero Header -->
+    <div class="login-header">
+      <div class="login-icon-box">🌾</div>
+      <h1 style="font-size:24px; font-weight:900; letter-spacing:-0.02em;" id="loginTitle">KisanGuard</h1>
+      <p style="font-size:13.5px; opacity:0.9; margin-top:4px; font-weight:600;" id="loginSub">Smart Farm Irrigation &amp; Motor Protection</p>
     </div>
 
-    <!-- Sign In -->
-    <div class="auth-panel visible" id="panelSignIn">
-      <form onsubmit="event.preventDefault(); doSignIn();">
-        <div class="auth-field">
-          <label for="siEmail">Email</label>
-          <input type="email" id="siEmail" class="input" placeholder="farmer@gmail.com" required>
+    <!-- Login Form Body -->
+    <div class="login-body">
+
+      <!-- 3-Language Selector on Login Screen -->
+      <div class="farmer-lang-login" id="loginLangBar">
+        <div class="farmer-lang-group" style="background:#E8F5E9; border-color:#C8E6C9;">
+          <button class="lang-pill" id="btnLangEn" onclick="setLang('en')" style="color:#1B5E20;">English</button>
+          <button class="lang-pill" id="btnLangHi" onclick="setLang('hi')" style="color:#1B5E20;">हिंदी</button>
+          <button class="lang-pill" id="btnLangMr" onclick="setLang('mr')" style="color:#1B5E20;">मराठी</button>
         </div>
-        <div class="auth-field">
-          <label for="siPassword">Password</label>
-          <input type="password" id="siPassword" class="input" placeholder="Enter password" required>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:14px;">
+        <div>
+          <label style="display:block; font-size:12.5px; font-weight:800; color:var(--text-dark); margin-bottom:6px;" id="lblFarmerName">Farmer Name</label>
+          <input type="text" id="inputName" class="input" placeholder="e.g. Samir" value="Samir" style="width:100%; font-size:15px; font-weight:700;">
         </div>
-        <div class="auth-field">
-          <label for="siMobile">Alert Phone (optional)</label>
-          <input type="tel" id="siMobile" class="input" placeholder="+91 98765 43210">
+
+        <div>
+          <label style="display:block; font-size:12.5px; font-weight:800; color:var(--text-dark); margin-bottom:6px;" id="lblMobile">Mobile Number</label>
+          <input type="tel" id="inputMobile" class="input" placeholder="9876543210" value="9876543210" style="width:100%; font-size:15px; font-weight:700;">
         </div>
-        <button type="submit" class="btn btn-green" style="width:100%; padding:13px; font-size:15px; margin-top:4px;">
-          Sign In →
+
+        <button class="farmer-power-btn is-start" style="margin-top:8px; font-size:17px;" onclick="handleLogin()" id="btnEnterFarm">
+          🌾 Enter My Farm
         </button>
-      </form>
+      </div>
 
-      <div class="auth-divider"><span>OR</span></div>
-
-      <button type="button" class="btn btn-outline" onclick="doGuest()" style="width:100%; padding:12px;">
-        🌾 Quick Demo Access
-      </button>
-    </div>
-
-    <!-- Sign Up -->
-    <div class="auth-panel" id="panelSignUp">
-      <form onsubmit="event.preventDefault(); doSignUp();">
-        <div class="auth-field">
-          <label for="suName">Your Name</label>
-          <input type="text" id="suName" class="input" placeholder="e.g. Ramesh Patil" required>
-        </div>
-        <div class="auth-field">
-          <label for="suEmail">Email</label>
-          <input type="email" id="suEmail" class="input" placeholder="farmer@gmail.com" required>
-        </div>
-        <div class="auth-field">
-          <label for="suMobile">Mobile (for SMS alerts)</label>
-          <input type="tel" id="suMobile" class="input" placeholder="+91 98765 43210" required>
-        </div>
-        <div class="auth-field">
-          <label for="suPassword">Password</label>
-          <input type="password" id="suPassword" class="input" placeholder="Min 6 characters" required>
-        </div>
-        <button type="submit" class="btn btn-green" style="width:100%; padding:13px; font-size:15px; margin-top:4px;">
-          Create Account →
-        </button>
-      </form>
     </div>
 
   </div>
 </div>
 
-<div class="login-footer">
-  Empowering Indian Farmers with Smart Solutions 🌱
-</div>
-
-<script src="js/app.js?v=14"></script>
+<script src="js/app.js?v=20"></script>
 <script>
   redirectIfAuthed('home.html');
 
-  function switchTab(tab) {
-    const isSignIn = tab === 'signin';
-    document.getElementById('tabSignIn').classList.toggle('active', isSignIn);
-    document.getElementById('tabSignUp').classList.toggle('active', !isSignIn);
-    document.getElementById('panelSignIn').classList.toggle('visible', isSignIn);
-    document.getElementById('panelSignUp').classList.toggle('visible', !isSignIn);
+  const curLang = getLanguage();
+  document.getElementById('btnLangEn').className = `lang-pill ${curLang === 'en' ? 'active' : ''}`;
+  document.getElementById('btnLangHi').className = `lang-pill ${curLang === 'hi' ? 'active' : ''}`;
+  document.getElementById('btnLangMr').className = `lang-pill ${curLang === 'mr' ? 'active' : ''}`;
+
+  function setLang(l) {
+    setLanguage(l);
   }
 
-  function doSignIn() {
-    const email  = document.getElementById('siEmail').value.trim();
-    const pass   = document.getElementById('siPassword').value;
-    const mobile = document.getElementById('siMobile').value.trim();
-    if (!email || !pass) { toast('Please enter your credentials', 'error'); return; }
-    const name = email.split('@')[0];
-    saveAuth({ name: name.charAt(0).toUpperCase() + name.slice(1), email, mobile: mobile || null, loginAt: new Date().toISOString() });
-    if (mobile) postAlertContact(mobile, true).catch(() => {});
-    toast('Welcome back! 🌾', 'success');
-    setTimeout(() => { window.location.href = 'home.html'; }, 500);
-  }
+  // Multi-Language on Login Page
+  const loginTranslations = {
+    en: {
+      sub: 'Smart Farm Motor Control & Timer',
+      name: 'Farmer Name',
+      mobile: 'Mobile Number',
+      btn: '🌾 Enter My Farm'
+    },
+    hi: {
+      sub: 'स्मार्ट खेत मोटर नियंत्रण और टाइमर',
+      name: 'किसान का नाम',
+      mobile: 'मोबाइल नंबर',
+      btn: '🌾 खेत में प्रवेश करें'
+    },
+    mr: {
+      sub: 'स्मार्ट शेती मोटर नियंत्रण व टाइमर',
+      name: 'शेतकऱ्याचे नाव',
+      mobile: 'मोबाईल नंबर',
+      btn: '🌾 शेतात प्रवेश करा'
+    }
+  };
 
-  function doSignUp() {
-    const name   = document.getElementById('suName').value.trim();
-    const email  = document.getElementById('suEmail').value.trim();
-    const mobile = document.getElementById('suMobile').value.trim();
-    const pass   = document.getElementById('suPassword').value;
-    if (!name || !email || !mobile || pass.length < 6) { toast('Please fill all fields', 'error'); return; }
-    saveAuth({ name, email, mobile, loginAt: new Date().toISOString() });
-    postAlertContact(mobile, true).catch(() => {});
-    toast('Account created! 🎉', 'success');
-    setTimeout(() => { window.location.href = 'home.html'; }, 600);
-  }
+  const tr = loginTranslations[curLang] || loginTranslations['en'];
+  document.getElementById('loginSub').textContent = tr.sub;
+  document.getElementById('lblFarmerName').textContent = tr.name;
+  document.getElementById('lblMobile').textContent = tr.mobile;
+  document.getElementById('btnEnterFarm').textContent = tr.btn;
 
-  function doGuest() {
-    saveAuth({ name: 'Ramesh', email: 'farmer@gmail.com', mobile: '+919876543210', isGuest: true });
-    toast('Welcome, Ramesh! 🌾', 'success');
-    setTimeout(() => { window.location.href = 'home.html'; }, 400);
+  function handleLogin() {
+    const name = document.getElementById('inputName').value.trim() || 'Farmer';
+    const mobile = document.getElementById('inputMobile').value.trim() || '9876543210';
+    saveAuth({ name, mobile, loggedInAt: Date.now() });
+    toast('Welcome to KisanGuard! 🌾', 'success');
+    setTimeout(() => {
+      window.location.replace('home.html');
+    }, 300);
   }
 </script>
 </body>

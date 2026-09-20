@@ -4,285 +4,429 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1B5E20">
-<meta name="description" content="KisanGuard — Borewell Pump Motor Control Panel.">
-<title>Pump Control — KisanGuard</title>
+<meta name="description" content="KisanGuard — Farm Motor Control.">
+<title>Motor Control — KisanGuard</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=21">
 </head>
 <body>
 
-<!-- Top Header -->
+<!-- Top Header Bar -->
 <header class="top-header">
   <div class="top-header-inner">
     <a href="home.html" class="top-brand">
       <div class="top-brand-icon">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
       </div>
-      <span class="top-brand-name">Pump Control</span>
+      <span class="top-brand-name" id="brandTitle">KisanGuard</span>
     </a>
 
+    <!-- Desktop Navigation -->
     <div class="desktop-nav" id="desktopNav"></div>
 
     <div class="top-actions">
-      <div class="conn-badge">
-        <span class="conn-dot" id="pumpBeaconDot"></span>
-        <span id="pumpConnLabel">Connecting…</span>
-      </div>
-      <button class="btn-header" onclick="doLogout()">Logout</button>
+      <!-- 3-Language Switcher (English | हिंदी | मराठी) -->
+      <div id="langSwitcher"></div>
+      <button class="btn-header" onclick="doLogout()" id="logoutBtn">Logout</button>
     </div>
   </div>
 </header>
 
-<!-- Page Content -->
+<!-- Main Page Container -->
 <main class="page-container">
 
-  <!-- Emergency Fault Card -->
-  <div id="pumpResetCard" class="fault-banner" style="display:none;">
+  <!-- Motor Auto-Stopped / Trip Alert Banner -->
+  <div id="pumpDryRunBanner" class="fault-banner" style="display:none;">
     <div class="fault-left">
       <div class="fault-icon">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9v4M12 17h.01M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg>
       </div>
       <div>
-        <div class="fault-title">Dry-Run Lockout Engaged</div>
-        <div class="fault-desc">Motor safely stopped. Check water before restarting.</div>
+        <div class="fault-title" id="dryRunTitleText">⚠️ Motor Auto-Stopped!</div>
+        <div class="fault-desc" id="dryRunMsgText">Motor was stopped automatically.</div>
       </div>
     </div>
-    <button class="btn btn-red" style="padding:8px 14px; font-size:12px;" onclick="handleEmergencyStop()">Reset</button>
+    <button class="btn btn-red" style="padding:10px 18px; font-size:13px; font-weight:800;" onclick="handleReset()" id="resetBtn">Reset</button>
   </div>
 
-  <!-- Main Power Control Card -->
+  <!-- Main Motor Power Card -->
   <div class="card pump-hero">
-    <div class="pump-hero-label">15 HP Submersible Contactor</div>
 
-    <!-- Big Power Button -->
-    <button class="power-circle is-off" id="pumpPowerBtn" title="Toggle Motor">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+    <!-- Agricultural Header Banner -->
+    <div class="pump-hero-banner">
+      <img src="assets/crop_field.jpg" alt="Farm Field Motor" loading="lazy">
+      <div class="pump-hero-banner-overlay">
+        <span>🌱 Farm Motor Control</span>
+        <span style="font-size:11.5px; opacity:0.9;">Direct Control</span>
+      </div>
+    </div>
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; margin-top:4px; margin-bottom:6px;">
+      <div style="font-size:15px; font-weight:800; color:var(--text-dark);" id="lblBorewellUnit">🌾 Farm Motor</div>
+      <div class="sys-status-ribbon is-online" id="pumpSysRibbon">
+        <span class="status-dot-pulse"></span>
+        <span id="pumpSysLabel">System Online</span>
+      </div>
+    </div>
+
+    <!-- Big Circular Motor Power Button -->
+    <button class="power-circle is-off" id="pumpPowerBtn" title="Start or Stop Motor">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6">
         <path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/>
       </svg>
       <span id="pumpPowerLabel">Start Motor</span>
     </button>
 
-    <!-- Auto-Off Irrigation Timer -->
-    <div class="timer-select-wrap" style="width:100%; max-width:280px; background:var(--bg); border:1px solid var(--border);">
-      <span class="timer-select-label" style="color:var(--text-dark);">⏱️ Auto-Off:</span>
-      <select id="pumpTimerSelect" class="timer-select" style="background:#FFFFFF; color:var(--text-dark);">
-        <option value="0">Off (Continuous)</option>
-        <option value="15">15 Minutes</option>
-        <option value="30">30 Minutes</option>
-        <option value="60">1 Hour</option>
-        <option value="120">2 Hours</option>
-      </select>
+    <!-- Farmer Auto-Off Irrigation Timer (Presets + Custom Stepper) -->
+    <div class="farmer-timer-card" style="width:100%; max-width:340px; background:var(--bg); border:1px solid var(--border);">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:12.5px; font-weight:800; color:var(--text-dark);" id="pumpTimerLabel">⏱️ Irrigation Auto-Off:</span>
+        <span style="font-size:12px; font-weight:900; background:var(--bg-green-soft); color:var(--green-dark); padding:2px 8px; border-radius:10px;" id="pumpSelectedTimerDisplay">Continuous</span>
+      </div>
+
+      <!-- Quick Preset Chips -->
+      <div class="timer-chip-group" style="justify-content:center;">
+        <button class="timer-chip active" id="pumpChip0" onclick="setPumpTimerPreset(0)" style="background:var(--bg-white); color:var(--text-dark); border-color:var(--border);">Continuous</button>
+        <button class="timer-chip" id="pumpChip15" onclick="setPumpTimerPreset(15)" style="background:var(--bg-white); color:var(--text-dark); border-color:var(--border);">15m</button>
+        <button class="timer-chip" id="pumpChip30" onclick="setPumpTimerPreset(30)" style="background:var(--bg-white); color:var(--text-dark); border-color:var(--border);">30m</button>
+        <button class="timer-chip" id="pumpChip45" onclick="setPumpTimerPreset(45)" style="background:var(--bg-white); color:var(--text-dark); border-color:var(--border);">45m</button>
+        <button class="timer-chip" id="pumpChip60" onclick="setPumpTimerPreset(60)" style="background:var(--bg-white); color:var(--text-dark); border-color:var(--border);">1h</button>
+        <button class="timer-chip" id="pumpChipCustom" onclick="togglePumpCustomTimer()" style="background:var(--bg-white); color:var(--text-dark); border-color:var(--border);">✏️ Custom</button>
+      </div>
+
+      <!-- Custom Stepper Input (Hours + Minutes) -->
+      <div class="custom-timer-stepper" id="pumpCustomStepperBox" style="display:none; background:var(--bg-white); border-color:var(--border);">
+        <div class="stepper-unit-group" style="background:var(--bg); border:1px solid var(--border);">
+          <button class="stepper-btn" onclick="stepPumpHours(-1)" type="button" style="background:var(--bg-white); border:1px solid var(--border);" title="Minus 1 Hour">−</button>
+          <input type="number" id="pumpCustomHoursInput" class="stepper-input" value="0" min="0" max="12" oninput="onPumpCustomTimeChange()" style="border:1px solid var(--border); color:var(--text-dark);">
+          <span class="stepper-unit-label" id="lblPumpHoursUnit" style="color:var(--text-dark);">hr</span>
+          <button class="stepper-btn" onclick="stepPumpHours(1)" type="button" style="background:var(--bg-white); border:1px solid var(--border);" title="Plus 1 Hour">+</button>
+        </div>
+
+        <div class="stepper-unit-group" style="background:var(--bg); border:1px solid var(--border);">
+          <button class="stepper-btn" onclick="stepPumpMinutes(-5)" type="button" style="background:var(--bg-white); border:1px solid var(--border);" title="Minus 5 Minutes">−</button>
+          <input type="number" id="pumpCustomMinutesInput" class="stepper-input" value="45" min="0" max="59" step="5" oninput="onPumpCustomTimeChange()" style="border:1px solid var(--border); color:var(--text-dark);">
+          <span class="stepper-unit-label" id="lblPumpMinutesUnit" style="color:var(--text-dark);">min</span>
+          <button class="stepper-btn" onclick="stepPumpMinutes(5)" type="button" style="background:var(--bg-white); border:1px solid var(--border);" title="Plus 5 Minutes">+</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Motor Status Pill -->
+    <!-- Status Description -->
     <div class="motor-status-pill is-off" id="pumpMotorBadge">
-      <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--text-muted); transition:all 0.3s;" id="pumpMotorDot"></span>
-      <span id="pumpMotorLabel">MOTOR OFF • STANDBY</span>
+      <span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:var(--text-muted);" id="pumpMotorDot"></span>
+      <span id="pumpMotorStatusText">MOTOR STOPPED</span>
     </div>
 
-    <p style="font-size:13px; font-weight:600; color:var(--text-muted); text-align:center;" id="pumpStatusLine">
-      Checking unit connection…
+    <p style="font-size:14px; font-weight:700; color:var(--text-sec); text-align:center;" id="pumpStatusLine">
+      Ready to start motor
     </p>
+
   </div>
 
-  <!-- Safety Checks & Timers Row -->
-  <div class="grid-two-col">
+  <!-- Motor Runtime Details Card -->
+  <div class="card" style="margin-top:16px;">
+    <div class="card-title" style="margin-bottom:12px;">
+      <div class="card-title-icon" style="background:#E8F5E9; color:#2E7D32;">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+      </div>
+      <span id="titleWateringTimes">Motor Runtime Details</span>
+    </div>
 
-    <!-- Safety Checks -->
-    <div class="card">
-      <div class="card-title" style="font-size:14px;">
-        <div class="card-title-icon" style="background:#E8F5E9; color:#2E7D32;">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22s8-4 8-10V5l-8-2-8 2v7c0 6 8 10 8 10z"/></svg>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+      <div style="padding:12px 14px; background:var(--bg); border-radius:12px; border:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-size:12px; font-weight:800; color:var(--text-muted);" id="lblCurRun">CURRENT RUN TIME</div>
+          <div style="font-size:22px; font-weight:900; color:#2E7D32; font-family:'Nunito',monospace;" id="valCurRun">00:00:00</div>
         </div>
-        Safety Checks
+        <div style="text-align:right;">
+          <div style="font-size:12px; font-weight:800; color:var(--text-muted);" id="lblTodayRun">TODAY TOTAL RUNTIME</div>
+          <div style="font-size:22px; font-weight:900; color:var(--text-dark);" id="valTodayRun">0m</div>
+        </div>
       </div>
 
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border-radius:10px; border:1px solid var(--border-light);">
-          <div id="checkWaterIcon" style="width:26px; height:26px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:#E8F5E9; color:#2E7D32;">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
-          </div>
-          <div>
-            <div style="font-size:12.5px; font-weight:700; color:var(--text-dark);" id="checkWaterText">Checking water…</div>
-            <div style="font-size:10.5px; color:var(--text-muted);">Conductivity probe</div>
-          </div>
+      <div style="padding:12px 14px; background:var(--bg); border-radius:12px; border:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <div style="font-size:12px; font-weight:800; color:var(--text-muted);" id="lblAutoOffState">AUTO-OFF TIMER</div>
+          <div style="font-size:15px; font-weight:800; color:#0288D1;" id="valAutoOffState">Continuous</div>
         </div>
-
-        <div style="display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg); border-radius:10px; border:1px solid var(--border-light);">
-          <div id="checkConnIcon" style="width:26px; height:26px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:#E8F5E9; color:#2E7D32;">
-            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5"/></svg>
-          </div>
-          <div>
-            <div style="font-size:12.5px; font-weight:700; color:var(--text-dark);" id="checkConnText">Checking ESP32…</div>
-            <div style="font-size:10.5px; color:var(--text-muted);">IoT connection</div>
-          </div>
+        <div style="text-align:right;">
+          <div style="font-size:12px; font-weight:800; color:var(--text-muted);" id="lblSysOnlineState">SYSTEM STATUS</div>
+          <div style="font-size:15px; font-weight:800; color:#2E7D32;" id="valSysOnlineState">Online ✓</div>
         </div>
       </div>
     </div>
-
-    <!-- Operation Timers & Motor ON Tracking -->
-    <div class="card">
-      <div class="card-title" style="font-size:14px;">
-        <div class="card-title-icon" style="background:#FFF8E1; color:#F57F17;">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
-        </div>
-        Motor ON Time &amp; Delay Timers
-      </div>
-
-      <div style="display:flex; flex-direction:column; gap:10px;">
-        <div style="padding:10px 12px; background:var(--bg); border-radius:10px; border:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Active Session</div>
-            <div style="font-size:18px; font-weight:900; color:#2E7D32; margin-top:2px;" id="pumpRuntime">00:00:00</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Today Total</div>
-            <div style="font-size:18px; font-weight:900; color:var(--text-dark); margin-top:2px;" id="pumpTodayTotal">0m</div>
-          </div>
-        </div>
-
-        <div style="padding:10px 12px; background:var(--bg); border-radius:10px; border:1px solid var(--border-light); display:flex; justify-content:space-between; align-items:center;">
-          <div>
-            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Reset Delay</div>
-            <div style="font-size:18px; font-weight:900; color:#0288D1; margin-top:2px;" id="pumpCountdown">—</div>
-          </div>
-          <div style="text-align:right;">
-            <div style="font-size:11px; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Auto-Off Status</div>
-            <div style="font-size:13px; font-weight:800; color:var(--text-dark); margin-top:4px;" id="pumpAutoOffText">Continuous</div>
-          </div>
-        </div>
-      </div>
-    </div>
-
   </div>
 
 </main>
 
-<!-- Bottom Navigation Container -->
-<div id="bottomNav"></div>
+<!-- Bottom Navigation Bar -->
+<nav class="bottom-nav" id="bottomNav"></nav>
 
-<script src="js/app.js?v=15"></script>
+<script src="js/app.js?v=21"></script>
 <script>
   requireAuth();
   injectNav('pump');
 
+  document.getElementById('brandTitle').textContent = t('brand');
+  document.getElementById('logoutBtn').textContent = t('logout');
+  document.getElementById('lblBorewellUnit').textContent = `🌾 ${t('waterMotor')}`;
+  document.getElementById('titleWateringTimes').textContent = t('todayWateringTime');
+  document.getElementById('resetBtn').textContent = t('resetLockout');
+
+  document.getElementById('pumpTimerLabel').textContent = `⏱️ ${t('autoOffTimer')}:`;
+  document.getElementById('pumpChip0').textContent = t('continuous');
+  document.getElementById('pumpChipCustom').textContent = `✏️ ${t('customTimer')}`;
+  document.getElementById('lblPumpHoursUnit').textContent = t('hoursShort') || 'hr';
+  document.getElementById('lblPumpMinutesUnit').textContent = t('minutesShort') || 'min';
+
+  let pumpSelectedTimerMinutes = 0;
+  let pumpCustomHours = 0;
+  let pumpCustomMinutes = 45;
+
+  function setPumpTimerPreset(mins) {
+    pumpSelectedTimerMinutes = mins;
+    document.getElementById('pumpCustomStepperBox').style.display = 'none';
+
+    // Sync custom input fields with preset
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    document.getElementById('pumpCustomHoursInput').value = h;
+    document.getElementById('pumpCustomMinutesInput').value = m || (mins === 0 ? 0 : m);
+    pumpCustomHours = h;
+    pumpCustomMinutes = m;
+
+    ['0', '15', '30', '45', '60', 'Custom'].forEach(id => {
+      const el = document.getElementById('pumpChip' + id);
+      if (el) el.classList.remove('active');
+    });
+
+    const activeEl = document.getElementById('pumpChip' + mins);
+    if (activeEl) activeEl.classList.add('active');
+
+    updatePumpTimerDisplay();
+  }
+
+  function togglePumpCustomTimer() {
+    ['0', '15', '30', '45', '60'].forEach(id => {
+      const el = document.getElementById('pumpChip' + id);
+      if (el) el.classList.remove('active');
+    });
+    document.getElementById('pumpChipCustom').classList.add('active');
+    document.getElementById('pumpCustomStepperBox').style.display = 'flex';
+    onPumpCustomTimeChange();
+  }
+
+  function stepPumpHours(delta) {
+    const input = document.getElementById('pumpCustomHoursInput');
+    let val = (parseInt(input.value) || 0) + delta;
+    if (val < 0) val = 0;
+    if (val > 12) val = 12;
+    input.value = val;
+    pumpCustomHours = val;
+    onPumpCustomTimeChange();
+  }
+
+  function stepPumpMinutes(delta) {
+    const input = document.getElementById('pumpCustomMinutesInput');
+    let val = (parseInt(input.value) || 0) + delta;
+    if (val < 0) val = 0;
+    if (val > 59) val = 59;
+    input.value = val;
+    pumpCustomMinutes = val;
+    onPumpCustomTimeChange();
+  }
+
+  function onPumpCustomTimeChange() {
+    const hInput = document.getElementById('pumpCustomHoursInput');
+    const mInput = document.getElementById('pumpCustomMinutesInput');
+    let h = parseInt(hInput.value) || 0;
+    let m = parseInt(mInput.value) || 0;
+    if (h < 0) h = 0;
+    if (h > 12) h = 12;
+    if (m < 0) m = 0;
+    if (m > 59) m = 59;
+    hInput.value = h;
+    mInput.value = m;
+    pumpCustomHours = h;
+    pumpCustomMinutes = m;
+    pumpSelectedTimerMinutes = (h * 60) + m;
+    updatePumpTimerDisplay();
+  }
+
+  function formatPumpTimeDuration(mins) {
+    if (!mins || mins === 0) return t('continuous');
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    const hUnit = t('hoursShort') || 'hr';
+    const mUnit = t('minutesShort') || 'min';
+    if (h > 0 && m > 0) {
+      return `${h}${hUnit} ${m}${mUnit}`;
+    } else if (h > 0) {
+      return `${h} ${t('hoursUnit') || 'Hours'}`;
+    } else {
+      return `${m} ${t('minutesUnit') || 'Minutes'}`;
+    }
+  }
+
+  function updatePumpTimerDisplay() {
+    const d = document.getElementById('pumpSelectedTimerDisplay');
+    if (d) d.textContent = formatPumpTimeDuration(pumpSelectedTimerMinutes);
+  }
+  updatePumpTimerDisplay();
+
   let currentState = {};
-  let isSendingCommand = false;
+  let isSending = false;
+  let localSessionMs = 0;
+  let localTodayMs = 0;
 
   startPolling((state, reachable, live) => {
     currentState = state;
 
-    const beacon = document.getElementById('pumpBeaconDot');
-    const label  = document.getElementById('pumpConnLabel');
-    if (live) {
-      beacon.className = 'conn-dot live';
-      label.textContent = 'Connected';
-      document.getElementById('checkConnText').textContent = 'ESP32 Connected ✓';
-      document.getElementById('checkConnIcon').style.background = '#E8F5E9';
-      document.getElementById('checkConnIcon').style.color = '#2E7D32';
+    const isRunning = pumpIsRunning(state);
+    const hasDryRunFault = isDryRunFault(state);
+
+    // 1. System Ribbon
+    const ribbon = document.getElementById('pumpSysRibbon');
+    const ribbonLbl = document.getElementById('pumpSysLabel');
+    if (live || isRunning) {
+      ribbon.className = 'sys-status-ribbon is-online';
+      ribbonLbl.textContent = `🟢 ${t('systemOnline')}`;
     } else {
-      beacon.className = reachable ? 'conn-dot' : 'conn-dot down';
-      label.textContent = reachable ? 'Standby' : 'Offline';
-      document.getElementById('checkConnText').textContent = reachable ? 'Waiting for data…' : 'ESP32 Offline';
-      document.getElementById('checkConnIcon').style.background = reachable ? '#FFF8E1' : '#FFEBEE';
-      document.getElementById('checkConnIcon').style.color = reachable ? '#F57F17' : '#D32F2F';
+      ribbon.className = 'sys-status-ribbon is-offline';
+      ribbonLbl.textContent = `🔴 ${t('systemOffline')}`;
     }
 
-    const waterPresent = live ? isWaterPresent(state.waterStatus, state.waterRaw) : null;
-    const waterText = document.getElementById('checkWaterText');
-    const waterIcon = document.getElementById('checkWaterIcon');
-    if (waterPresent === true) {
-      waterText.textContent = 'Water Present ✓';
-      waterIcon.style.background = '#E8F5E9'; waterIcon.style.color = '#2E7D32';
-    } else if (waterPresent === false) {
-      waterText.textContent = 'Water Absent ✗';
-      waterIcon.style.background = '#FFEBEE'; waterIcon.style.color = '#D32F2F';
+    // 2. Dry Run Cutoff Banner
+    const banner = document.getElementById('pumpDryRunBanner');
+    if (hasDryRunFault) {
+      banner.style.display = 'flex';
+      document.getElementById('dryRunTitleText').textContent = t('dryRunTitle');
+      document.getElementById('dryRunMsgText').textContent = t('dryRunMsg');
+      playFaultSiren();
     } else {
-      waterText.textContent = 'Checking sensor…';
-      waterIcon.style.background = '#F1F5F1'; waterIcon.style.color = '#8A9B8A';
+      banner.style.display = 'none';
     }
 
-    const running = pumpIsRunning(state);
-    const hasFault = live && ((state.fault && String(state.fault).toUpperCase() !== 'NONE') || (state.systemState && state.systemState.includes('FAULT')));
+    // 3. Power Button & Status
+    const powerBtn = document.getElementById('pumpPowerBtn');
+    const powerLbl = document.getElementById('pumpPowerLabel');
+    const badge = document.getElementById('pumpMotorBadge');
+    const dot = document.getElementById('pumpMotorDot');
+    const mText = document.getElementById('pumpMotorStatusText');
+    const sLine = document.getElementById('pumpStatusLine');
 
-    const powerBtn   = document.getElementById('pumpPowerBtn');
-    const badge      = document.getElementById('pumpMotorBadge');
-    const mLabel     = document.getElementById('pumpMotorLabel');
-    const dot        = document.getElementById('pumpMotorDot');
-    const statusLine = document.getElementById('pumpStatusLine');
-
-    if (!isSendingCommand) {
-      if (running && live) {
+    if (!isSending) {
+      if (isRunning) {
         powerBtn.className = 'power-circle is-on';
-        document.getElementById('pumpPowerLabel').textContent = t('stopMotor');
+        powerBtn.disabled = false;
+        powerLbl.textContent = t('stopMotor');
         badge.className = 'motor-status-pill is-on';
-        dot.style.background = '#2E7D32'; dot.style.boxShadow = '0 0 6px #2E7D32';
-        mLabel.textContent = 'MOTOR RUNNING 🟢';
-        statusLine.textContent = 'Motor relay is energized. Pumping water.';
-        statusLine.style.color = '#2E7D32';
-      } else if (hasFault) {
+        dot.style.background = '#2E7D32';
+        mText.textContent = `${t('motorRunning')} 🟢`;
+        sLine.textContent = t('systemReady');
+        sLine.style.color = '#2E7D32';
+      } else if (hasDryRunFault) {
         powerBtn.className = 'power-circle is-off';
-        document.getElementById('pumpPowerLabel').textContent = 'Lockout';
+        powerBtn.disabled = false;
+        powerLbl.textContent = t('resetLockout');
         badge.className = 'motor-status-pill is-fault';
-        dot.style.background = '#D32F2F'; dot.style.boxShadow = '0 0 6px #D32F2F';
-        mLabel.textContent = 'LOCKOUT ACTIVE ⚠️';
-        statusLine.textContent = `Dry-Run: ${state.fault}`;
-        statusLine.style.color = '#D32F2F';
-        playFaultSiren();
+        dot.style.background = '#D32F2F';
+        mText.textContent = `${t('dryRunTitle')}`;
+        sLine.textContent = t('dryRunSub');
+        sLine.style.color = '#D32F2F';
+      } else if (!live && !reachable) {
+        powerBtn.className = 'power-circle is-off';
+        powerBtn.disabled = true;
+        powerLbl.textContent = t('startMotor');
+        badge.className = 'motor-status-pill is-off';
+        dot.style.background = 'var(--text-muted)';
+        mText.textContent = t('systemOffline');
+        sLine.textContent = t('systemOfflineDesc');
+        sLine.style.color = 'var(--text-muted)';
       } else {
         powerBtn.className = 'power-circle is-off';
-        document.getElementById('pumpPowerLabel').textContent = t('startMotor');
+        powerBtn.disabled = false;
+        powerLbl.textContent = t('startMotor');
         badge.className = 'motor-status-pill is-off';
-        dot.style.background = 'var(--text-muted)'; dot.style.boxShadow = 'none';
-        mLabel.textContent = live ? 'MOTOR OFF' : 'MOTOR OFFLINE';
-        statusLine.textContent = live ? 'Ready. Tap the button to start.' : 'Unit offline.';
-        statusLine.style.color = 'var(--text-muted)';
+        dot.style.background = 'var(--text-muted)';
+        mText.textContent = t('motorStopped');
+        sLine.textContent = t('systemReady');
+        sLine.style.color = 'var(--text-muted)';
       }
     }
 
-    // Motor Runtime Tracking
+    // 4. Timers
     const rStats = state.runtimeStats || {};
-    document.getElementById('pumpRuntime').textContent = live && running ? formatDurationMs(rStats.currentSessionMs || 0, true) : '00:00:00';
-    document.getElementById('pumpTodayTotal').textContent = live ? formatDurationMs(rStats.todayTotalMs || 0, false) : '0m';
+    localSessionMs = rStats.currentSessionMs || 0;
+    localTodayMs = rStats.todayTotalMs || 0;
+
+    document.getElementById('valCurRun').textContent = formatDurationMs(localSessionMs, true);
+    document.getElementById('valTodayRun').textContent = formatDurationMs(localTodayMs, false);
 
     if (rStats.autoOffRemainingMs > 0) {
-      document.getElementById('pumpAutoOffText').textContent = `Off in ${formatDurationMs(rStats.autoOffRemainingMs, false)}`;
-      document.getElementById('pumpAutoOffText').style.color = '#0288D1';
+      document.getElementById('valAutoOffState').textContent = `${t('autoOffRemaining')} ${formatDurationMs(rStats.autoOffRemainingMs, false)}`;
+      document.getElementById('valAutoOffState').style.color = '#0288D1';
     } else {
-      document.getElementById('pumpAutoOffText').textContent = 'Continuous';
-      document.getElementById('pumpAutoOffText').style.color = 'var(--text-dark)';
+      document.getElementById('valAutoOffState').textContent = t('continuous');
+      document.getElementById('valAutoOffState').style.color = 'var(--text-dark)';
     }
-
-    document.getElementById('pumpCountdown').textContent = live && state.countdown > 0 ? `${state.countdown}s` : (live ? '0s' : '—');
-    document.getElementById('pumpResetCard').style.display = hasFault ? 'flex' : 'none';
   });
 
+  // 1-second ticker for smooth session timing
+  setInterval(() => {
+    if (pumpIsRunning(currentState)) {
+      localSessionMs += 1000;
+      localTodayMs += 1000;
+      document.getElementById('valCurRun').textContent = formatDurationMs(localSessionMs, true);
+      document.getElementById('valTodayRun').textContent = formatDurationMs(localTodayMs, false);
+    }
+  }, 1000);
+
+  // Power Button Click Handler
   document.getElementById('pumpPowerBtn').addEventListener('click', async () => {
-    if (isSendingCommand) return;
+    if (isSending) return;
+
+    if (isDryRunFault(currentState)) {
+      await handleReset();
+      return;
+    }
+
     const running = pumpIsRunning(currentState);
     const targetState = !running;
-    const timerVal = parseInt(document.getElementById('pumpTimerSelect').value) || null;
+    const timerVal = pumpSelectedTimerMinutes > 0 ? pumpSelectedTimerMinutes : null;
 
-    isSendingCommand = true;
-    document.getElementById('pumpPowerLabel').textContent = targetState ? 'Starting…' : 'Stopping…';
-    toast(targetState ? 'Starting motor…' : 'Stopping motor…');
+    isSending = true;
+    document.getElementById('pumpPowerLabel').textContent = targetState ? t('starting') : t('stopping');
+    toast(targetState ? t('starting') : t('stopping'));
+
     try {
       await postMotor(targetState, timerVal);
-      toast(targetState ? (timerVal ? `Motor started with ${timerVal}m auto-off timer ✓` : 'Motor started ✓') : 'Motor stopped ✓', 'success');
-      currentState.relay = targetState ? 1 : 0;
-      currentState.relayStatus = targetState ? 1 : 0;
+      toast(targetState ? (timerVal ? `${t('started')} (${timerVal} ${t('minutesUnit')}) ✓` : `${t('started')} ✓`) : `${t('stopped')} ✓`, 'success');
+      currentState.relay = targetState;
+      currentState.relayStatus = targetState;
+      currentState.pumpStatus = targetState ? 'RUNNING' : 'OFF';
+      currentState.systemState = targetState ? 'RUNNING' : 'OFF';
+      if (targetState) localSessionMs = 0;
     } catch (err) {
       toast(err.message || 'Failed', 'error');
     } finally {
-      setTimeout(() => { isSendingCommand = false; }, 1000);
+      setTimeout(() => { isSending = false; }, 600);
     }
   });
 
-  async function handleEmergencyStop() {
-    toast('Resetting lockout…');
-    try { await postReset(); toast('Lockout reset ✓', 'success'); }
-    catch (err) { toast(err.message || 'Reset failed', 'error'); }
+  async function handleReset() {
+    toast(t('resetLockout') + '…');
+    try {
+      await postReset();
+      toast(t('resetLockout') + ' ✓', 'success');
+      currentState.fault = 'NONE';
+      currentState.systemState = 'IDLE';
+      document.getElementById('pumpDryRunBanner').style.display = 'none';
+    } catch (err) {
+      toast(err.message || 'Failed', 'error');
+    }
   }
 </script>
 </body>

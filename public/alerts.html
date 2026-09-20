@@ -4,189 +4,148 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1B5E20">
-<meta name="description" content="KisanGuard — Alert Center & Safety Event Logs.">
+<meta name="description" content="KisanGuard — Farm Alerts & Safety Logs.">
 <title>Alerts — KisanGuard</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=20">
 </head>
 <body>
 
-<!-- Top Header -->
+<!-- Top Header Bar -->
 <header class="top-header">
   <div class="top-header-inner">
     <a href="home.html" class="top-brand">
       <div class="top-brand-icon">
-        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 0 1-3.46 0"/></svg>
       </div>
-      <span class="top-brand-name">Alert Center</span>
+      <span class="top-brand-name" id="brandTitle">KisanGuard</span>
     </a>
 
+    <!-- Desktop Navigation -->
     <div class="desktop-nav" id="desktopNav"></div>
 
     <div class="top-actions">
-      <button class="btn-header" onclick="handleClear()">
-        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px; margin-right:3px;"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>
-        Clear
-      </button>
-      <button class="btn-header" onclick="doLogout()">Logout</button>
+      <!-- 3-Language Switcher (English | हिंदी | मराठी) -->
+      <div id="langSwitcher"></div>
+      <button class="btn-header" onclick="handleClear()" id="clearBtn">Clear</button>
+      <button class="btn-header" onclick="doLogout()" id="logoutBtn">Logout</button>
     </div>
   </div>
 </header>
 
-<!-- Page Content -->
+<!-- Main Page Container -->
 <main class="page-container">
 
-  <!-- Alert Summary -->
+  <!-- Summary -->
   <div style="display:flex; align-items:center; justify-content:space-between;">
-    <div>
-      <div style="font-size:14px; font-weight:800; color:var(--text-dark);" id="alertsSub">Loading alerts…</div>
+    <div style="font-size:15px; font-weight:800; color:var(--text-dark);" id="alertsSub">
+      All systems normal ✓
     </div>
   </div>
 
-  <!-- Push Notification & Siren Alarm Controls Card -->
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;" id="notifCard">
-    <button class="btn btn-green" id="notifBtn" onclick="handleEnableNotif()" style="padding:12px 14px; font-size:12.5px;">
+  <!-- Notification & Siren Sound Toggle Controls -->
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+    <button class="btn btn-green" id="notifBtn" onclick="handleEnableNotif()" style="padding:12px 14px; font-size:13px; font-weight:800;">
       🔔 <span id="notifBtnText">Push Notifications</span>
     </button>
-    <button class="btn btn-outline" id="sirenBtn" onclick="toggleSirenSetting()" style="padding:12px 14px; font-size:12.5px;">
-      🔊 <span id="sirenBtnText">Siren Sound ON</span>
+    <button class="btn btn-outline" id="sirenBtn" onclick="toggleSirenSetting()" style="padding:12px 14px; font-size:13px; font-weight:800;">
+      🔊 <span id="sirenBtnText">Siren Alarm ON</span>
     </button>
   </div>
 
-  <!-- Filter Tabs -->
-  <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:10px;">
-    <button class="btn btn-green" id="tab-all" onclick="setTab('all')" style="padding:7px 14px; font-size:12px;">All</button>
-    <button class="btn btn-outline" id="tab-protect" onclick="setTab('protect')" style="padding:7px 14px; font-size:12px;">Protection</button>
-    <button class="btn btn-outline" id="tab-gsm" onclick="setTab('gsm')" style="padding:7px 14px; font-size:12px;">GSM</button>
-    <button class="btn btn-outline" id="tab-water" onclick="setTab('water')" style="padding:7px 14px; font-size:12px;">Water</button>
-  </div>
-
-  <!-- Events List -->
-  <div id="alertsList" style="display:flex; flex-direction:column; gap:8px;">
-    <!-- dynamically populated -->
+  <!-- Alert Events List -->
+  <div id="alertsList" style="display:flex; flex-direction:column; gap:10px; margin-top:8px;">
+    <!-- Dynamically populated with farmer-friendly alert cards -->
   </div>
 
 </main>
 
-<!-- Bottom Navigation Container -->
-<div id="bottomNav"></div>
+<!-- Bottom Mobile Navigation Bar -->
+<nav class="bottom-nav" id="bottomNav"></nav>
 
-<script src="js/app.js?v=15"></script>
+<script src="js/app.js?v=21"></script>
 <script>
   requireAuth();
   injectNav('alerts');
-  requestNotificationPermission();
 
-  let activeTab = 'all';
+  document.getElementById('brandTitle').textContent = t('brand');
+  document.getElementById('logoutBtn').textContent = t('logout');
+  document.getElementById('clearBtn').textContent = 'Clear';
 
   function updateNotifButton() {
-    const btn  = document.getElementById('notifBtn');
-    const txt  = document.getElementById('notifBtnText');
+    const btn = document.getElementById('notifBtn');
+    const txt = document.getElementById('notifBtnText');
     if (!('Notification' in window)) return;
-    if (Notification.permission === 'granted') { btn.className = 'btn btn-outline'; txt.textContent = 'Push Notifications Active'; }
-    else if (Notification.permission === 'denied') { btn.className = 'btn btn-outline'; txt.textContent = 'Notifications Blocked'; }
-    else { btn.className = 'btn btn-green'; txt.textContent = 'Enable Push Notifications'; }
+    if (Notification.permission === 'granted') {
+      btn.className = 'btn btn-outline';
+      txt.textContent = `${t('pushNotif')} (Active)`;
+    } else {
+      btn.className = 'btn btn-green';
+      txt.textContent = `Enable ${t('pushNotif')}`;
+    }
 
-    // Siren button state
     const sirenBtn = document.getElementById('sirenBtn');
     const sirenTxt = document.getElementById('sirenBtnText');
     const enabled = localStorage.getItem('sirenEnabled') !== '0';
     if (enabled) {
       sirenBtn.className = 'btn btn-green';
-      sirenTxt.textContent = 'Siren Sound Enabled';
+      sirenTxt.textContent = t('sirenOn');
     } else {
       sirenBtn.className = 'btn btn-outline';
-      sirenTxt.textContent = 'Siren Muted';
+      sirenTxt.textContent = t('sirenOff');
     }
   }
 
   function toggleSirenSetting() {
     const cur = localStorage.getItem('sirenEnabled') !== '0';
     localStorage.setItem('sirenEnabled', cur ? '0' : '1');
-    toast(cur ? 'Siren alarm muted' : 'Siren alarm enabled ✓', cur ? 'info' : 'success');
+    toast(cur ? t('sirenOff') : t('sirenOn'), cur ? 'info' : 'success');
     updateNotifButton();
   }
 
   function handleEnableNotif() {
-    if (!('Notification' in window) || Notification.permission === 'granted') return;
+    if (!('Notification' in window)) return;
     Notification.requestPermission().then(() => updateNotifButton());
   }
 
-  function setTab(tab) {
-    activeTab = tab;
-    ['all', 'protect', 'gsm', 'water'].forEach(t => {
-      const b = document.getElementById(`tab-${t}`);
-      if (b) b.className = t === tab ? 'btn btn-green' : 'btn btn-outline';
-    });
-    renderAlerts();
-  }
-
   function renderAlerts() {
-    const pumpAlerts = loadAlerts();
-    const gsmAlerts  = loadGSMLog();
-
-    const all = [
-      ...pumpAlerts.map(a => ({ ...a, category: detectCategory(a) })),
-      ...gsmAlerts.map(g => ({
-        ...g, category: 'gsm',
-        fault: g.type === 'test' ? 'GSM Test' : (g.message ? 'SMS Sent' : 'Voice Call'),
-        detail: g.message || `Target: ${g.to || 'Farmer'}`
-      }))
-    ].sort((a, b) => new Date(b.time) - new Date(a.time));
-
-    const filtered  = activeTab === 'all' ? all : all.filter(a => a.category === activeTab);
+    const alerts = loadAlerts();
     const container = document.getElementById('alertsList');
-    const total     = all.length;
+    const subEl = document.getElementById('alertsSub');
 
-    document.getElementById('alertsSub').textContent =
-      total === 0 ? 'All systems normal ✓' : `${total} event${total !== 1 ? 's' : ''} logged`;
-
-    if (filtered.length === 0) {
+    if (alerts.length === 0) {
+      subEl.textContent = t('allClear');
       container.innerHTML = `
-        <div class="card" style="text-align:center; padding:32px;">
-          <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="#2E7D32" stroke-width="2" style="margin:0 auto 10px; display:block;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-          <div style="font-size:15px; font-weight:800; color:var(--text-dark);">No Alerts</div>
-          <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">No events in this category.</div>
+        <div class="card" style="text-align:center; padding:36px 20px;">
+          <svg viewBox="0 0 24 24" width="44" height="44" fill="none" stroke="#2E7D32" stroke-width="2.2" style="margin:0 auto 12px; display:block;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+          <div style="font-size:16px; font-weight:800; color:var(--text-dark);">${t('allClear')}</div>
+          <div style="font-size:13px; color:var(--text-muted); margin-top:4px;">No safety alerts logged.</div>
         </div>`;
       return;
     }
 
-    container.innerHTML = filtered.map(a => renderAlertCard(a)).join('');
-  }
-
-  function detectCategory(a) {
-    const f = String(a.fault || '').toUpperCase();
-    const d = String(a.detail || '').toUpperCase();
-    if (f.includes('GSM') || f.includes('SMS') || f.includes('CALL') || d.includes('SMS') || d.includes('GSM')) return 'gsm';
-    if (f.includes('WATER') || d.includes('WATER')) return 'water';
-    return 'protect';
-  }
-
-  function renderAlertCard(a) {
-    const cat  = a.category || 'protect';
-    const time = a.time ? new Date(a.time).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
-    const borderColor = cat === 'protect' ? '#D32F2F' : (cat === 'gsm' ? '#0288D1' : '#F57F17');
-    const tagLabel    = { gsm: 'GSM', water: 'WATER', protect: 'SAFETY' }[cat] || 'EVENT';
-    const tagBg       = cat === 'protect' ? '#FFEBEE' : (cat === 'gsm' ? '#E1F5FE' : '#FFF8E1');
-
-    return `
-      <div class="card" style="padding:14px 16px; border-left:4px solid ${borderColor};">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-          <div style="display:flex; align-items:center; gap:8px;">
-            <span style="font-size:10px; font-weight:800; background:${tagBg}; color:${borderColor}; padding:2px 8px; border-radius:20px; text-transform:uppercase;">${tagLabel}</span>
-            <span style="font-size:14px; font-weight:800; color:var(--text-dark);">${a.fault || 'Event'}</span>
+    subEl.textContent = `${alerts.length} Event${alerts.length > 1 ? 's' : ''}`;
+    container.innerHTML = alerts.map(a => {
+      const time = a.time ? new Date(a.time).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+      return `
+        <div class="card" style="padding:16px 18px; border-left:4px solid #D32F2F;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="font-size:11px; font-weight:800; background:#FFEBEE; color:#D32F2F; padding:3px 8px; border-radius:12px;">ALERT</span>
+              <span style="font-size:15px; font-weight:800; color:var(--text-dark);">${t('dryRunTitle')}</span>
+            </div>
+            <span style="font-size:11.5px; font-weight:600; color:var(--text-muted);">${time}</span>
           </div>
-          <span style="font-size:11px; font-weight:600; color:var(--text-muted);">${time}</span>
-        </div>
-        <div style="font-size:12.5px; color:var(--text-sec);">${a.detail || '—'}</div>
-      </div>`;
+          <div style="font-size:13px; color:var(--text-sec); font-weight:600;">${t('dryRunMsg')}</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:4px;">${t('dryRunSub')}</div>
+        </div>`;
+    }).join('');
   }
 
   function handleClear() {
-    if (activeTab === 'all') { clearAlerts(); clearGSMLog(); toast('All cleared ✓'); }
-    else if (activeTab === 'gsm') { clearGSMLog(); toast('GSM log cleared ✓'); }
-    else { clearAlerts(); toast('Protection log cleared ✓'); }
+    clearAlerts();
+    toast('Alerts cleared ✓');
     renderAlerts();
   }
 
