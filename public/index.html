@@ -91,14 +91,24 @@
   }
 
   .splash-brand-logo {
-    width: 44px;
-    height: 44px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #2E7D32, #66BB6A);
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #FFFFFF;
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 14px rgba(46,125,50,0.4);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    border: 2px solid rgba(255,255,255,0.7);
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .splash-brand-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
   .splash-title {
@@ -218,10 +228,10 @@
     <div>
       <div class="splash-brand">
         <div class="splash-brand-logo">
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="#FFFFFF" stroke-width="2.5"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+          <img src="images/kisanguard-logo.png" alt="KisanGuard Logo">
         </div>
         <div>
-          <div style="font-size: 18px; font-weight: 900; letter-spacing: -0.02em;">KisanGuard Pro</div>
+          <div style="font-size: 18px; font-weight: 900; letter-spacing: -0.02em;">KisanGuard</div>
           <div style="font-size: 11px; color: #81C784; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Smart Borewell Protection</div>
         </div>
       </div>
