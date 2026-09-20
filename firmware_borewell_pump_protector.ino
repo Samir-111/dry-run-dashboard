@@ -53,7 +53,9 @@ String farmerMobileNumber = "9022616290";
 bool gsmReady = false;
 
 /******************** GSM HELPER FUNCTIONS *******************/
-bool sendGsmCommand(String cmd, unsigned long timeout = 1000) {
+WiFiClientSecure secClient;
+
+bool sendGsmCommand(String cmd, unsigned long timeout = 500) {
   gsmSerial.println(cmd);
   unsigned long start = millis();
   String resp = "";
@@ -68,22 +70,24 @@ bool sendGsmCommand(String cmd, unsigned long timeout = 1000) {
 void initGSM() {
   Serial.println("\n[GSM] Initializing SIM800L on GPIO 16 (RX) / 17 (TX)...");
   gsmSerial.begin(GSM_BAUD, SERIAL_8N1, SIM800_RX_PIN, SIM800_TX_PIN);
-  delay(1000);
-
-  // Send test AT command
-  gsmSerial.println("AT");
+  gsmSerial.setTimeout(200);
   delay(300);
+
+  // Quick non-blocking AT test
+  gsmSerial.println("AT");
+  delay(150);
   if (gsmSerial.available()) {
-    String resp = gsmSerial.readString();
+    String resp = "";
+    while (gsmSerial.available()) { resp += (char)gsmSerial.read(); }
     if (resp.indexOf("OK") >= 0) {
       gsmReady = true;
       Serial.println("[GSM] SIM800L Module Detected & Ready ✓");
-      sendGsmCommand("AT+CMGF=1", 1000); // Set SMS to Text Mode
-      sendGsmCommand("AT+CLIP=1", 1000); // Enable Caller ID
+      sendGsmCommand("AT+CMGF=1", 500); // Set SMS to Text Mode
+      sendGsmCommand("AT+CLIP=1", 500); // Enable Caller ID
       return;
     }
   }
-  Serial.println("[GSM] SIM800L not responding yet (Waiting for power/module). System will continue on WiFi.");
+  Serial.println("[GSM] SIM800L not responding (Standby mode). System will continue on WiFi.");
   gsmReady = false;
 }
 
@@ -480,15 +484,13 @@ void syncWithServer() {
   String url = String(SERVER_URL) + "/api/device/telemetry";
 
   if (url.startsWith("https://")) {
-    WiFiClientSecure client;
-    client.setInsecure();
-    http.begin(client, url);
+    http.begin(secClient, url);
   } else {
     http.begin(url);
   }
 
   http.addHeader("Content-Type", "application/json");
-  http.setTimeout(3000);
+  http.setTimeout(4000);
 
   // Build Telemetry JSON matching exact pin format
   String json = "{";
@@ -553,6 +555,8 @@ void syncWithServer() {
         }
       }
     }
+  } else {
+    Serial.println("[Telemetry] Sync error code: " + String(code));
   }
 
   http.end();
@@ -595,6 +599,10 @@ void setup() {
   } else {
     Serial.println("\nWiFi Connection Pending (will reconnect in loop)");
   }
+
+  // Configure Secure SSL Client once
+  secClient.setInsecure();
+  secClient.setTimeout(4);
 
   // Initialize GSM SIM800L (Non-blocking: if SIM800L is off or missing, ESP32 continues seamlessly on WiFi)
   initGSM();
