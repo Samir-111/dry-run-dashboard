@@ -4,11 +4,11 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1B5E20">
-<meta name="description" content="KisanGuard — Smart Farm Irrigation Dashboard for Farmers.">
-<title>Farmer Setup — KisanGuard</title>
+<meta name="description" content="KisanGuard — Smart Farm Irrigation & Motor Protection.">
+<title>Farm Security & Login — KisanGuard</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
-<link rel="stylesheet" href="css/style.css?v=26">
+<link rel="stylesheet" href="css/style.css?v=27">
 <style>
 body {
   background: linear-gradient(135deg, rgba(244, 247, 242, 0.94), rgba(234, 245, 228, 0.96)), url('assets/farm_hero_bg.jpg') center/cover fixed no-repeat;
@@ -112,24 +112,30 @@ body {
   box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.15);
 }
 
-.farmer-profile-card {
+.pin-input {
+  letter-spacing: 6px;
+  font-size: 20px;
+  text-align: center;
+  font-weight: 900;
+}
+
+.farmer-select-card {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 14px 16px;
+  padding: 12px 14px;
   background: #F4F8F3;
   border: 2px solid #DDEBD9;
   border-radius: var(--r-lg);
   cursor: pointer;
   transition: all 0.2s ease;
-  margin-bottom: 12px;
-  color: inherit;
+  margin-bottom: 10px;
 }
 
-.farmer-profile-card:hover {
+.farmer-select-card.selected {
   background: #E8F5E9;
   border-color: var(--green);
-  transform: translateY(-2px);
+  box-shadow: 0 2px 10px rgba(46, 125, 50, 0.18);
 }
 </style>
 </head>
@@ -157,95 +163,136 @@ body {
         </div>
       </div>
 
-      <!-- VIEW 1: First-Time Setup Form -->
+      <!-- VIEW 1: First-Time Farm Registration Form -->
       <div id="firstTimeSetupView">
         <div style="text-align:center; margin-bottom:18px;">
-          <h3 style="font-size:16.5px; font-weight:900; color:var(--text-dark);" id="lblSetupHeading">🌾 Farmer Registration</h3>
-          <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;" id="lblSetupSub">Enter your details once to start controlling your farm motor</p>
+          <h3 style="font-size:16.5px; font-weight:900; color:var(--text-dark);" id="lblSetupHeading">🌾 First-Time Farm Setup</h3>
+          <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;" id="lblSetupSub">Set up your farm details and a 4-digit security PIN</p>
         </div>
 
         <div class="auth-form-group">
           <label class="auth-label" for="farmerNameInput" id="lblFarmerName">👤 Farmer Name</label>
-          <input type="text" id="farmerNameInput" class="auth-input" placeholder="e.g. Ramesh Patel">
+          <input type="text" id="farmerNameInput" class="auth-input" placeholder="e.g. Samir Khorgade">
         </div>
 
         <div class="auth-form-group">
-          <label class="auth-label" for="farmerMobileInput" id="lblMobileNumber">📱 Mobile Number</label>
-          <input type="tel" id="farmerMobileInput" class="auth-input" placeholder="e.g. 9876543210" maxlength="10">
+          <label class="auth-label" for="farmerMobileInput" id="lblMobileNumber">📱 WhatsApp Number</label>
+          <input type="tel" id="farmerMobileInput" class="auth-input" placeholder="e.g. 9022616290" maxlength="10">
         </div>
 
-        <button class="farmer-power-btn is-start" style="margin-top:16px; font-size:16.5px;" onclick="handleSaveFarmerProfile()" id="btnSaveEnter">
-          🌾 Enter My Farm
+        <div class="auth-form-group">
+          <label class="auth-label" for="setupPinInput" id="lblSetupPin">🔑 Set 4-Digit Security PIN</label>
+          <input type="password" id="setupPinInput" class="auth-input pin-input" placeholder="••••" maxlength="6" value="1234">
+          <small style="font-size:11.5px; color:var(--text-muted);">Default PIN is 1234 (Used to protect motor control on new phones)</small>
+        </div>
+
+        <button class="farmer-power-btn is-start" style="margin-top:14px; font-size:16px;" onclick="handleFirstTimeSetup()" id="btnSaveEnter">
+          🌾 Save &amp; Enter Farm
         </button>
       </div>
 
-      <!-- VIEW 2: Returning Farmer Selector (Shows only if already saved) -->
-      <div id="returningFarmerView" style="display:none;">
+      <!-- VIEW 2: Secure Farmer Login View -->
+      <div id="secureLoginView" style="display:none;">
         <div style="text-align:center; margin-bottom:16px;">
-          <h3 style="font-size:16px; font-weight:900; color:var(--text-dark);" id="lblWelcomeBack">🌾 Welcome Back</h3>
-          <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;" id="lblReturningSub">Tap to open your farm dashboard</p>
+          <h3 style="font-size:16.5px; font-weight:900; color:var(--text-dark);" id="lblLoginHeading">🔒 Farm Security Access</h3>
+          <p style="font-size:12.5px; color:var(--text-muted); margin-top:2px;" id="lblLoginSub">Select account &amp; enter PIN to control motor</p>
         </div>
 
-        <div id="savedFarmersList"></div>
+        <div id="farmerAccountsList"></div>
 
-        <button class="farmer-power-btn is-start" style="margin-top:10px; font-size:15px; background:#4CAF50;" onclick="showFirstTimeView()" id="btnAddProfile">
-          ➕ Register Another Member
+        <div class="auth-form-group" style="margin-top:14px;">
+          <label class="auth-label" for="loginPinInput" id="lblEnterPin">🔑 Enter 4-Digit PIN</label>
+          <input type="password" id="loginPinInput" class="auth-input pin-input" placeholder="••••" maxlength="6">
+        </div>
+
+        <button class="farmer-power-btn is-start" style="margin-top:14px; font-size:16px;" onclick="handleSecureLogin()" id="btnLoginEnter">
+          🔓 Unlock Farm Dashboard
         </button>
+
+        <div style="display:flex; justify-content:space-between; margin-top:16px; font-size:12.5px;">
+          <a href="javascript:void(0)" onclick="handleForgotPin()" style="color:var(--green-dark); font-weight:800; text-decoration:none;" id="lnkForgotPin">
+            ❓ Forgot PIN?
+          </a>
+          <a href="javascript:void(0)" onclick="showFirstTimeView()" style="color:var(--text-sec); font-weight:700; text-decoration:none;" id="lnkAddMember">
+            ➕ Add / Change Farmer
+          </a>
+        </div>
       </div>
 
     </div>
   </div>
 </div>
 
-<script src="js/app.js?v=26"></script>
+<script src="js/app.js?v=27"></script>
 <script>
   redirectIfAuthed('home.html');
+
+  let selectedUser = null;
+  let allConfiguredUsers = [];
 
   const setupI18n = {
     en: {
       sub: 'Smart Farm Irrigation & Motor Protection',
-      heading: '🌾 Farmer Registration',
-      setupSub: 'Enter your details once to start controlling your farm motor',
+      setupHeading: '🌾 First-Time Farm Setup',
+      setupSub: 'Set up your farm details and a 4-digit security PIN',
       name: '👤 Farmer Name',
-      namePlaceholder: 'e.g. Ramesh Patel',
-      mobile: '📱 Mobile Number',
-      mobilePlaceholder: 'e.g. 9876543210',
-      btnEnter: '🌾 Enter My Farm',
-      welcomeBack: '🌾 Welcome Back',
-      returningSub: 'Tap to open your farm dashboard',
-      toastSuccess: 'Profile saved! Welcome to KisanGuard 🌾',
+      namePlaceholder: 'e.g. Samir Khorgade',
+      mobile: '📱 WhatsApp Number',
+      mobilePlaceholder: 'e.g. 9022616290',
+      setupPin: '🔑 Set 4-Digit Security PIN',
+      btnEnter: '🌾 Save & Enter Farm',
+      loginHeading: '🔒 Farm Security Access',
+      loginSub: 'Select account & enter PIN to control motor',
+      enterPin: '🔑 Enter 4-Digit PIN',
+      btnUnlock: '🔓 Unlock Farm Dashboard',
+      forgotPin: '❓ Forgot PIN?',
+      addMember: '➕ Add / Change Farmer',
       toastNameErr: 'Please enter your name.',
-      toastMobileErr: 'Please enter a valid 10-digit mobile number.'
+      toastMobileErr: 'Please enter a valid 10-digit mobile number.',
+      toastPinErr: 'Please enter the 4-digit security PIN.',
+      toastSuccess: 'Welcome to KisanGuard Farm Dashboard 🌾'
     },
     hi: {
       sub: 'स्मार्ट खेत मोटर नियंत्रण और सुरक्षा',
-      heading: '🌾 किसान पंजीकरण',
-      setupSub: 'मोटर नियंत्रण शुरू करने के लिए अपना विवरण दर्ज करें',
+      setupHeading: '🌾 पहली बार खेत सेटअप',
+      setupSub: 'अपना विवरण और ४-अंकों का सुरक्षा पिन दर्ज करें',
       name: '👤 किसान का नाम',
-      namePlaceholder: 'जैसे: रमेश पटेल',
-      mobile: '📱 मोबाइल नंबर',
-      mobilePlaceholder: 'जैसे: 9876543210',
-      btnEnter: '🌾 खेत में प्रवेश करें',
-      welcomeBack: '🌾 पुनः स्वागत है',
-      returningSub: 'खेत डैशबोर्ड खोलने के लिए टैप करें',
-      toastSuccess: 'प्रोफाइल सेव हो गया! किसानगार्ड में आपका स्वागत है 🌾',
+      namePlaceholder: 'जैसे: समीर खोरगड़े',
+      mobile: '📱 व्हाट्सएप नंबर',
+      mobilePlaceholder: 'जैसे: 9022616290',
+      setupPin: '🔑 ४-अंकों का सुरक्षा पिन सेट करें',
+      btnEnter: '🌾 सेव करें और खेत में जाएं',
+      loginHeading: '🔒 खेत सुरक्षा लॉगिन',
+      loginSub: 'मोटर नियंत्रण के लिए पिन दर्ज करें',
+      enterPin: '🔑 ४-अंकों का पिन दर्ज करें',
+      btnUnlock: '🔓 खेत डैशबोर्ड खोलें',
+      forgotPin: '❓ पिन भूल गए?',
+      addMember: '➕ नया सदस्य जोड़ें',
       toastNameErr: 'कृपया अपना नाम दर्ज करें।',
-      toastMobileErr: 'कृपया १० अंकों का वैध मोबाइल नंबर दर्ज करें।'
+      toastMobileErr: 'कृपया १० अंकों का वैध मोबाइल नंबर दर्ज करें।',
+      toastPinErr: 'कृपया ४-अंकों का सुरक्षा पिन दर्ज करें।',
+      toastSuccess: 'किसानगार्ड में आपका स्वागत है 🌾'
     },
     mr: {
       sub: 'स्मार्ट शेती मोटर नियंत्रण व सुरक्षा',
-      heading: '🌾 शेतकरी नोंदणी',
-      setupSub: 'मोटर नियंत्रण सुरू करण्यासाठी आपली माहिती प्रविष्ट करा',
+      setupHeading: '🌾 पहिल्यांदा शेत सेटअप',
+      setupSub: 'आपली माहिती आणि ४-अंकी सुरक्षा पिन प्रविष्ट करा',
       name: '👤 शेतकऱ्याचे नाव',
-      namePlaceholder: 'उदा: रमेश पाटील',
-      mobile: '📱 मोबाईल नंबर',
-      mobilePlaceholder: 'उदा: 9876543210',
-      btnEnter: '🌾 शेतात प्रवेश करा',
-      welcomeBack: '🌾 पुन्हा स्वागत आहे',
-      returningSub: 'शेती डॅशबोर्ड उघडण्यासाठी टॅप करा',
-      toastSuccess: 'माहिती सेव्ह झाली! किसानगार्ड मध्ये आपले स्वागत आहे 🌾',
+      namePlaceholder: 'उदा: समीर खोरगडे',
+      mobile: '📱 व्हॉट्सअ‍ॅप नंबर',
+      mobilePlaceholder: 'उदा: 9022616290',
+      setupPin: '🔑 ४-अंकी सुरक्षा पिन सेट करा',
+      btnEnter: '🌾 जतन करा व शेतात जा',
+      loginHeading: '🔒 शेत सुरक्षा लॉगिन',
+      loginSub: 'मोटर नियंत्रणासाठी पिन टाका',
+      enterPin: '🔑 ४-अंकी पिन टाका',
+      btnUnlock: '🔓 शेती डॅशबोर्ड उघडा',
+      forgotPin: '❓ पिन विसरलात?',
+      addMember: '➕ नवीन सदस्य जोडा',
       toastNameErr: 'कृपया आपले नाव टाका.',
-      toastMobileErr: 'कृपया १० अंकी वैध मोबाईल नंबर टाका.'
+      toastMobileErr: 'कृपया १० अंकी वैध मोबाईल नंबर टाका.',
+      toastPinErr: 'कृपया ४-अंकी सुरक्षा पिन टाका.',
+      toastSuccess: 'किसानगार्ड मध्ये आपले स्वागत आहे 🌾'
     }
   };
 
@@ -257,15 +304,20 @@ body {
 
     const tr = setupI18n[curLang] || setupI18n['en'];
     document.getElementById('loginSub').textContent = tr.sub;
-    document.getElementById('lblSetupHeading').textContent = tr.heading;
+    document.getElementById('lblSetupHeading').textContent = tr.setupHeading;
     document.getElementById('lblSetupSub').textContent = tr.setupSub;
     document.getElementById('lblFarmerName').textContent = tr.name;
     document.getElementById('farmerNameInput').placeholder = tr.namePlaceholder;
     document.getElementById('lblMobileNumber').textContent = tr.mobile;
     document.getElementById('farmerMobileInput').placeholder = tr.mobilePlaceholder;
+    document.getElementById('lblSetupPin').textContent = tr.setupPin;
     document.getElementById('btnSaveEnter').textContent = tr.btnEnter;
-    document.getElementById('lblWelcomeBack').textContent = tr.welcomeBack;
-    document.getElementById('lblReturningSub').textContent = tr.returningSub;
+    document.getElementById('lblLoginHeading').textContent = tr.loginHeading;
+    document.getElementById('lblLoginSub').textContent = tr.loginSub;
+    document.getElementById('lblEnterPin').textContent = tr.enterPin;
+    document.getElementById('btnLoginEnter').textContent = tr.btnUnlock;
+    document.getElementById('lnkForgotPin').textContent = tr.forgotPin;
+    document.getElementById('lnkAddMember').textContent = tr.addMember;
   }
 
   function changeLang(l) {
@@ -274,15 +326,22 @@ body {
 
   function showFirstTimeView() {
     document.getElementById('firstTimeSetupView').style.display = 'block';
-    document.getElementById('returningFarmerView').style.display = 'none';
+    document.getElementById('secureLoginView').style.display = 'none';
+  }
+
+  function showLoginView() {
+    document.getElementById('firstTimeSetupView').style.display = 'none';
+    document.getElementById('secureLoginView').style.display = 'block';
   }
 
   async function checkInitialConfig() {
     try {
       const res = await fetch('/api/auth/config');
       const data = await res.json();
-      if (data && data.users && data.users.length > 0) {
-        renderSavedFarmers(data.users);
+      if (data && Array.isArray(data.users) && data.users.length > 0 && data.users[0].name) {
+        allConfiguredUsers = data.users;
+        renderFarmerSelection(data.users);
+        showLoginView();
       } else {
         showFirstTimeView();
       }
@@ -291,60 +350,147 @@ body {
     }
   }
 
-  function renderSavedFarmers(users) {
-    document.getElementById('firstTimeSetupView').style.display = 'none';
-    document.getElementById('returningFarmerView').style.display = 'block';
+  function renderFarmerSelection(users) {
+    const listEl = document.getElementById('farmerAccountsList');
+    selectedUser = users[0];
 
-    const listEl = document.getElementById('savedFarmersList');
-    listEl.innerHTML = users.map(u => `
-      <div class="farmer-profile-card" onclick="enterAsFarmer('${u.name}', '${u.mobile}')">
-        <div style="font-size:26px;">👨‍🌾</div>
+    listEl.innerHTML = users.map((u, idx) => `
+      <div class="farmer-select-card ${idx === 0 ? 'selected' : ''}" id="userCard_${idx}" onclick="selectFarmerAccount(${idx})">
+        <div style="font-size:24px;">👨‍🌾</div>
         <div style="flex:1;">
-          <div style="font-size:16px; font-weight:900; color:var(--text-dark);">${u.name}</div>
-          <div style="font-size:12.5px; color:var(--green-dark); font-weight:700;">📱 +91 ${u.mobile}</div>
+          <div style="font-size:15.5px; font-weight:900; color:var(--text-dark);">${u.name}</div>
+          <div style="font-size:12px; color:var(--green-dark); font-weight:700;">📱 +91 ${u.mobile}</div>
         </div>
-        <span style="font-size:18px; color:var(--green); font-weight:900;">➔</span>
+        <span style="font-size:18px; color:var(--green); font-weight:900;" id="userCheck_${idx}">${idx === 0 ? '●' : '○'}</span>
       </div>
     `).join('');
   }
 
-  function enterAsFarmer(name, mobile) {
-    saveAuth({ name, mobile, loggedInAt: Date.now() });
-    window.location.replace('home.html');
+  function selectFarmerAccount(idx) {
+    allConfiguredUsers.forEach((_, i) => {
+      const card = document.getElementById(`userCard_${i}`);
+      const check = document.getElementById(`userCheck_${i}`);
+      if (card && check) {
+        if (i === idx) {
+          card.classList.add('selected');
+          check.textContent = '●';
+        } else {
+          card.classList.remove('selected');
+          check.textContent = '○';
+        }
+      }
+    });
+    selectedUser = allConfiguredUsers[idx];
+    document.getElementById('loginPinInput').focus();
   }
 
-  async function handleSaveFarmerProfile() {
+  async function handleFirstTimeSetup() {
     const name = document.getElementById('farmerNameInput').value.trim();
     const mobile = document.getElementById('farmerMobileInput').value.trim().replace(/\D/g, '');
-    const curLang = getLanguage();
-    const tr = setupI18n[curLang] || setupI18n['en'];
+    const pin = document.getElementById('setupPinInput').value.trim() || '1234';
+    const tr = setupI18n[getLanguage()] || setupI18n['en'];
 
-    if (!name) {
-      toast(tr.toastNameErr, 'error');
+    if (!name) { toast(tr.toastNameErr, 'error'); return; }
+    if (!mobile || mobile.length < 10) { toast(tr.toastMobileErr, 'error'); return; }
+    if (pin.length < 4) { toast('PIN must be at least 4 digits.', 'error'); return; }
+
+    try {
+      const res = await fetch('/api/auth/register-initial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user1: { name, mobile },
+          pin,
+          recoveryPin: pin
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast(data.error || 'Failed to setup farm.', 'error');
+        return;
+      }
+
+      saveAuth({ name, mobile, isAuth: true, loggedInAt: Date.now() });
+      toast(tr.toastSuccess, 'success');
+      setTimeout(() => { window.location.replace('home.html'); }, 300);
+    } catch (e) {
+      toast('Network error: ' + e.message, 'error');
+    }
+  }
+
+  async function handleSecureLogin() {
+    if (!selectedUser) {
+      toast('Please select an account.', 'error');
       return;
     }
-    if (!mobile || mobile.length < 10) {
-      toast(tr.toastMobileErr, 'error');
+
+    const pin = document.getElementById('loginPinInput').value.trim();
+    const tr = setupI18n[getLanguage()] || setupI18n['en'];
+
+    if (!pin) {
+      toast(tr.toastPinErr, 'error');
       return;
     }
 
     try {
-      await fetch('/api/auth/register-initial', {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user1: { name, mobile, password: 'nopassword' },
-          user2: { name: 'Family Member', mobile: mobile, password: 'nopassword' },
-          recoveryPin: '1234'
+          identifier: selectedUser.mobile || selectedUser.name,
+          pin
         })
       });
-    } catch (e) {}
 
-    saveAuth({ name, mobile, loggedInAt: Date.now() });
-    toast(tr.toastSuccess, 'success');
-    setTimeout(() => {
-      window.location.replace('home.html');
-    }, 300);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        toast(data.error || 'Incorrect PIN. Access Denied!', 'error');
+        return;
+      }
+
+      saveAuth({
+        name: selectedUser.name,
+        mobile: selectedUser.mobile,
+        token: data.token,
+        isAuth: true,
+        loggedInAt: Date.now()
+      });
+
+      toast(tr.toastSuccess, 'success');
+      setTimeout(() => { window.location.replace('home.html'); }, 300);
+    } catch (e) {
+      toast('Login error: ' + e.message, 'error');
+    }
+  }
+
+  function handleForgotPin() {
+    const recovery = prompt('Enter your 4-digit Farm Security Recovery PIN or WhatsApp number:');
+    if (!recovery) return;
+
+    fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        identifier: selectedUser ? selectedUser.mobile : recovery,
+        pin: recovery
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        saveAuth({
+          name: selectedUser ? selectedUser.name : 'Farmer',
+          mobile: selectedUser ? selectedUser.mobile : '',
+          isAuth: true,
+          loggedInAt: Date.now()
+        });
+        toast('Access Granted via Recovery PIN! ✓', 'success');
+        setTimeout(() => { window.location.replace('home.html'); }, 300);
+      } else {
+        toast('Invalid PIN or Recovery code.', 'error');
+      }
+    })
+    .catch(err => toast('Error: ' + err.message, 'error'));
   }
 
   updateTranslations();

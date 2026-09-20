@@ -579,53 +579,58 @@ app.get('/api/auth/config', (req, res) => {
   });
 });
 
-// 2. POST /api/auth/register-initial — Initial One-Time Setup for 2 Farmer Accounts
+// 2. POST /api/auth/register-initial — Initial One-Time Setup for Farmer Account(s)
 app.post('/api/auth/register-initial', (req, res) => {
   try {
-    const { user1, user2, recoveryPin } = req.body;
-    if (!user1 || !user1.name || !user1.mobile || !user1.password || !user2 || !user2.name || !user2.mobile || !user2.password) {
-      return res.status(400).json({ success: false, error: 'Please provide Name, WhatsApp Mobile Number, and Password for both accounts.' });
+    const { user1, user2, pin, recoveryPin } = req.body;
+    if (!user1 || !user1.name || !user1.mobile) {
+      return res.status(400).json({ success: false, error: 'Please provide Farmer Name and WhatsApp Mobile Number.' });
     }
 
     const mob1 = String(user1.mobile).replace(/\D/g, '');
-    const mob2 = String(user2.mobile).replace(/\D/g, '');
-    if (mob1 === mob2) {
-      return res.status(400).json({ success: false, error: 'Farmer 1 and Farmer 2 must have different WhatsApp numbers.' });
+    const userPin = String(pin || user1.password || recoveryPin || '1234').trim();
+
+    const users = [
+      {
+        name: (user1.name || 'Farmer').trim(),
+        mobile: mob1,
+        email: (user1.email || '').trim().toLowerCase(),
+        passwordHash: hashPassword(userPin)
+      }
+    ];
+
+    if (user2 && user2.mobile) {
+      const mob2 = String(user2.mobile).replace(/\D/g, '');
+      users.push({
+        name: (user2.name || 'Family Member').trim(),
+        mobile: mob2,
+        email: (user2.email || '').trim().toLowerCase(),
+        passwordHash: hashPassword(user2.password || userPin)
+      });
     }
 
     const newUserData = {
       isConfigured: true,
-      recoveryPin: String(recoveryPin || '1234').trim(),
-      users: [
-        {
-          name: (user1.name || 'Samir').trim(),
-          mobile: mob1,
-          email: (user1.email || '').trim().toLowerCase(),
-          passwordHash: hashPassword(user1.password)
-        },
-        {
-          name: (user2.name || 'Father').trim(),
-          mobile: mob2,
-          email: (user2.email || '').trim().toLowerCase(),
-          passwordHash: hashPassword(user2.password)
-        }
-      ]
+      recoveryPin: String(recoveryPin || userPin || '1234').trim(),
+      users
     };
 
     saveUsersData(newUserData);
-    console.log(`[Auth] 2 Farmer Accounts Registered: ${user1.name} (${mob1}), ${user2.name} (${mob2})`);
-    res.json({ success: true, message: 'Farm accounts registered successfully' });
+    console.log(`[Auth] Farm Registered: ${users.map(u => `${u.name} (${u.mobile})`).join(', ')}`);
+    res.json({ success: true, message: 'Farm account registered successfully' });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });
   }
 });
 
-// 3. POST /api/auth/login — Authenticate against the 2 authorized farmer accounts
+// 3. POST /api/auth/login — Authenticate against authorized farmer accounts with PIN / Password
 app.post('/api/auth/login', (req, res) => {
   try {
-    const { identifier, password } = req.body;
-    if (!identifier || !password) {
-      return res.status(400).json({ success: false, error: 'Please select account and enter password.' });
+    const { identifier, password, pin } = req.body;
+    const inputPwd = String(password || pin || '').trim();
+
+    if (!identifier || !inputPwd) {
+      return res.status(400).json({ success: false, error: 'Please enter your Mobile Number and Security PIN.' });
     }
 
     const cleanId = String(identifier).trim().toLowerCase();
@@ -637,16 +642,20 @@ app.post('/api/auth/login', (req, res) => {
     );
 
     if (!user) {
-      return res.status(401).json({ success: false, error: 'Unauthorized farmer account.' });
+      return res.status(401).json({ success: false, error: 'Unauthorized farmer account. Number not registered.' });
     }
 
-    const inputHash = hashPassword(password);
-    if (user.passwordHash !== inputHash) {
-      return res.status(401).json({ success: false, error: 'Incorrect password. Please try again.' });
+    const inputHash = hashPassword(inputPwd);
+    const masterPin = String(data.recoveryPin || '1234').trim();
+    const isMasterPin = inputPwd === masterPin;
+    const isPasswordMatch = user.passwordHash ? user.passwordHash === inputHash : false;
+
+    if (!isPasswordMatch && !isMasterPin) {
+      return res.status(401).json({ success: false, error: 'Incorrect 4-digit PIN / Password. Please try again.' });
     }
 
     const token = crypto.randomBytes(16).toString('hex');
-    console.log(`[Auth] User logged in: ${user.name} (WhatsApp: ${user.mobile})`);
+    console.log(`[Auth] User authenticated successfully: ${user.name} (${user.mobile})`);
     
     res.json({
       success: true,
