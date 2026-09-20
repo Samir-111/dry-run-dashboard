@@ -259,13 +259,20 @@ app.post('/api/device/telemetry', (req, res) => {
 
 app.get('/api/status', (req, res) => {
   const now = Date.now();
-  // Keep lastSeen fresh if motor is actively running via web command
-  if (deviceStore.relay || activeSession) {
-    deviceStore.lastSeen = now;
-  }
+  // Device is online ONLY if it synced with real ESP32 telemetry within last 12 seconds
+  const isOnline = (now - deviceStore.lastSeen) < 12000;
   
-  // Device is online if it synced within last 12 seconds or motor is running
-  const online = (now - deviceStore.lastSeen) < 12000 || deviceStore.relay;
+  // If hardware is offline for > 15s while activeSession was running, auto-close session
+  if (!isOnline && activeSession) {
+    if ((now - deviceStore.lastSeen) > 15000) {
+      stopMotorSession('Hardware Disconnected (Offline)');
+      deviceStore.relay = false;
+      deviceStore.relayStatus = false;
+      deviceStore.pumpStatus = 'OFF';
+      deviceStore.systemState = 'OFF';
+    }
+  }
+
   const runtimeStats = calculateRuntimeStats();
 
   let autoOffRemainingMs = 0;
@@ -274,26 +281,26 @@ app.get('/api/status', (req, res) => {
   }
 
   res.json({
-    online,
-    relay: deviceStore.relay,
-    pumpStatus: deviceStore.pumpStatus,
+    online: isOnline,
+    relay: isOnline ? deviceStore.relay : false,
+    pumpStatus: isOnline ? deviceStore.pumpStatus : 'OFF',
     waterStatus: deviceStore.waterStatus,
     waterRaw: deviceStore.waterRaw,
     protectionStatus: deviceStore.protectionStatus,
-    runtime: deviceStore.runtime,
+    runtime: isOnline ? deviceStore.runtime : '00:00:00',
     fault: deviceStore.fault,
     countdown: deviceStore.countdown,
-    wifiStatus: online ? 'CONNECTED' : 'DISCONNECTED',
-    relayStatus: deviceStore.relayStatus,
+    wifiStatus: isOnline ? 'CONNECTED' : 'DISCONNECTED',
+    relayStatus: isOnline ? deviceStore.relayStatus : false,
     waterThreshold: deviceStore.waterThreshold,
-    systemState: deviceStore.systemState,
+    systemState: isOnline ? deviceStore.systemState : 'OFFLINE',
     runtimeStats: {
-      currentSessionMs: runtimeStats.currentSessionMs,
+      currentSessionMs: isOnline ? runtimeStats.currentSessionMs : 0,
       todayTotalMs: runtimeStats.todayTotalMs,
       monthTotalMs: runtimeStats.monthTotalMs,
-      activeSessionStart: activeSession ? activeSession.startTime : null,
-      autoOffTimerMinutes: activeSession ? activeSession.timerMinutes : null,
-      autoOffRemainingMs
+      activeSessionStart: isOnline && activeSession ? activeSession.startTime : null,
+      autoOffTimerMinutes: isOnline && activeSession ? activeSession.timerMinutes : null,
+      autoOffRemainingMs: isOnline ? autoOffRemainingMs : 0
     },
     device: {
       mode: 'DIRECT_IOT_SERVER',
@@ -357,31 +364,44 @@ app.get('/api/export-csv', (req, res) => {
 // Farmer's pump on/off request from Dashboard
 app.post('/api/motor', (req, res) => {
   try {
+    const now = Date.now();
+    const isOnline = (now - deviceStore.lastSeen) < 12000;
+
+    // Strict Offline Protection: Reject motor START if hardware is offline!
+    if (req.body.on && !isOnline) {
+      return res.status(400).json({
+        success: false,
+        error: 'System is Offline. Please ensure ESP32 hardware is connected and powered ON before starting the motor.'
+      });
+    }
+
     const targetState = req.body.on ? 1 : 0;
     const timerMinutes = req.body.timerMinutes ? Number(req.body.timerMinutes) : null;
     
     pendingCommands.relay = targetState;
-    deviceStore.relay = Boolean(req.body.on);
-    deviceStore.relayStatus = Boolean(req.body.on);
-    deviceStore.lastSeen = Date.now();
 
     if (!req.body.on) {
+      deviceStore.relay = false;
+      deviceStore.relayStatus = false;
       deviceStore.pumpStatus = 'OFF';
       deviceStore.systemState = 'OFF';
       stopMotorSession('User Manual Stop');
     } else {
+      deviceStore.relay = true;
+      deviceStore.relayStatus = true;
       deviceStore.pumpStatus = 'RUNNING';
       deviceStore.systemState = 'RUNNING';
-      if (!deviceStore.waterRaw || deviceStore.waterRaw < 500) {
-        deviceStore.waterRaw = 1850;
-        deviceStore.waterStatus = 'PRESENT';
-      }
       startMotorSession(timerMinutes);
     }
-    console.log(`[Dashboard] Pump command queued: ${targetState ? 'START' : 'STOP'} (Timer: ${timerMinutes || 'None'})`);
-    res.json({ success: true, on: req.body.on, timerMinutes });
+
+    res.json({
+      success: true,
+      relay: deviceStore.relay,
+      pumpStatus: deviceStore.pumpStatus,
+      timerMinutes
+    });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ success: false, error: err.message });
   }
 });
 

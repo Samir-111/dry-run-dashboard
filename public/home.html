@@ -309,7 +309,7 @@
     // 1. Prominent System Online / Offline Status
     const ribbon = document.getElementById('sysStatusRibbon');
     const ribbonLbl = document.getElementById('sysStatusLabel');
-    if (live || isRunning) {
+    if (live) {
       ribbon.className = 'sys-status-ribbon is-online';
       ribbonLbl.textContent = `🟢 ${t('systemOnline')}`;
     } else {
@@ -337,7 +337,16 @@
     const btnText = document.getElementById('homePowerBtnText');
 
     if (!isSending) {
-      if (isRunning) {
+      if (!live) {
+        // Hardware is Offline
+        if (heroBox) heroBox.classList.remove('is-running');
+        motorDot.className = 'motor-status-dot';
+        motorText.textContent = `${t('systemOffline')} 🔴`;
+        motorDesc.textContent = t('systemOfflineDesc');
+        btn.className = 'farmer-power-btn is-offline-btn';
+        btn.disabled = false;
+        btnText.textContent = t('systemOfflineBtn');
+      } else if (isRunning) {
         if (heroBox) heroBox.classList.add('is-running');
         motorDot.className = 'motor-status-dot running';
         motorText.textContent = `${t('motorRunning')} 🟢`;
@@ -353,14 +362,6 @@
         btn.className = 'farmer-power-btn is-start';
         btn.disabled = false;
         btnText.textContent = t('resetLockout');
-      } else if (!live && !reachable) {
-        if (heroBox) heroBox.classList.remove('is-running');
-        motorDot.className = 'motor-status-dot';
-        motorText.textContent = `${t('systemOffline')}`;
-        motorDesc.textContent = t('systemOfflineDesc');
-        btn.className = 'farmer-power-btn is-start';
-        btn.disabled = true;
-        btnText.textContent = t('startMotor');
       } else {
         if (heroBox) heroBox.classList.remove('is-running');
         motorDot.className = 'motor-status-dot';
@@ -395,6 +396,13 @@
   document.getElementById('homePowerBtn').addEventListener('click', async () => {
     if (isSending) return;
     
+    // Strict Hardware Online Verification!
+    if (!isLiveOnline(currentState)) {
+      toast(t('systemOfflineToast'), 'error');
+      playFaultSiren();
+      return;
+    }
+
     // If dry-run lockout is active, button resets lockout
     if (isDryRunFault(currentState)) {
       await handleReset();

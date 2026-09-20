@@ -290,7 +290,7 @@
     // 1. System Ribbon
     const ribbon = document.getElementById('pumpSysRibbon');
     const ribbonLbl = document.getElementById('pumpSysLabel');
-    if (live || isRunning) {
+    if (live) {
       ribbon.className = 'sys-status-ribbon is-online';
       ribbonLbl.textContent = `🟢 ${t('systemOnline')}`;
     } else {
@@ -318,7 +318,17 @@
     const sLine = document.getElementById('pumpStatusLine');
 
     if (!isSending) {
-      if (isRunning) {
+      if (!live) {
+        // Hardware is Offline
+        powerBtn.className = 'power-circle is-off';
+        powerBtn.disabled = false;
+        powerLbl.textContent = t('systemOffline');
+        badge.className = 'motor-status-pill is-off';
+        dot.style.background = 'var(--text-muted)';
+        mText.textContent = `${t('systemOffline')} 🔴`;
+        sLine.textContent = t('systemOfflineDesc');
+        sLine.style.color = 'var(--text-muted)';
+      } else if (isRunning) {
         powerBtn.className = 'power-circle is-on';
         powerBtn.disabled = false;
         powerLbl.textContent = t('stopMotor');
@@ -336,15 +346,6 @@
         mText.textContent = `${t('dryRunTitle')}`;
         sLine.textContent = t('dryRunSub');
         sLine.style.color = '#D32F2F';
-      } else if (!live && !reachable) {
-        powerBtn.className = 'power-circle is-off';
-        powerBtn.disabled = true;
-        powerLbl.textContent = t('startMotor');
-        badge.className = 'motor-status-pill is-off';
-        dot.style.background = 'var(--text-muted)';
-        mText.textContent = t('systemOffline');
-        sLine.textContent = t('systemOfflineDesc');
-        sLine.style.color = 'var(--text-muted)';
       } else {
         powerBtn.className = 'power-circle is-off';
         powerBtn.disabled = false;
@@ -387,6 +388,13 @@
   // Power Button Click Handler
   document.getElementById('pumpPowerBtn').addEventListener('click', async () => {
     if (isSending) return;
+
+    // Strict Hardware Online Verification!
+    if (!isLiveOnline(currentState)) {
+      toast(t('systemOfflineToast'), 'error');
+      playFaultSiren();
+      return;
+    }
 
     if (isDryRunFault(currentState)) {
       await handleReset();

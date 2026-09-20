@@ -122,7 +122,9 @@ const I18N = {
     sirenSound: 'Siren Sound Alarm',
     sirenOn: 'Siren Alarm Enabled',
     sirenOff: 'Siren Alarm Muted',
-    allClear: 'All systems normal ✓'
+    allClear: 'All systems normal ✓',
+    systemOfflineToast: '🔴 System is Offline! Please check hardware power and Wi-Fi connection.',
+    systemOfflineBtn: 'System Offline (Cannot Start)'
   },
   hi: {
     brand: 'किसानगार्ड',
@@ -181,7 +183,9 @@ const I18N = {
     sirenSound: 'सायरन आवाज अलार्म',
     sirenOn: 'सायरन अलार्म चालू',
     sirenOff: 'सायरन आवाज बंद',
-    allClear: 'सब कुछ ठीक और सुरक्षित है ✓'
+    allClear: 'सब कुछ ठीक और सुरक्षित है ✓',
+    systemOfflineToast: '🔴 सिस्टम बंद (Offline) है! कृपया हार्डवेयर और वाई-फाई चेक करें।',
+    systemOfflineBtn: 'सिस्टम बंद है (चालू नहीं हो सकता)'
   },
   mr: {
     brand: 'किसानगार्ड',
@@ -240,7 +244,9 @@ const I18N = {
     sirenSound: 'सायरन आवाज अलार्म',
     sirenOn: 'सायरन अलार्म सुरू',
     sirenOff: 'सायरन आवाज बंद',
-    allClear: 'सर्व काही सुरळीत सुरू आहे ✓'
+    allClear: 'सर्व काही सुरळीत सुरू आहे ✓',
+    systemOfflineToast: '🔴 सिस्टम बंद (Offline) आहे! कृपया हार्डवेअर आणि वाय-फाय तपासा.',
+    systemOfflineBtn: 'सिस्टम बंद आहे (सुरू करता येत नाही)'
   }
 };
 
@@ -444,6 +450,11 @@ function pumpIsRunning(state) {
     if (['RUNNING', 'STARTING'].includes(s)) return true;
   }
   return false;
+}
+
+function isLiveOnline(state) {
+  if (!state) return false;
+  return state.online === true;
 }
 
 function isDryRunFault(state) {
