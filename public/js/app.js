@@ -7,13 +7,21 @@
 function loadAuth() {
   try {
     const raw = localStorage.getItem('pumpAuth');
-    return raw ? JSON.parse(raw) : null;
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (data && data.isAuth === true) {
+      return data;
+    }
+    return null;
   } catch {
     return null;
   }
 }
 
 function saveAuth(a) {
+  if (a && typeof a === 'object') {
+    a.isAuth = true;
+  }
   localStorage.setItem('pumpAuth', JSON.stringify(a));
 }
 
@@ -22,20 +30,23 @@ function clearAuth() {
 }
 
 function requireAuth() {
-  if (!loadAuth()) {
-    saveAuth({ name: 'Samir', mobile: '9371525696', loggedInAt: Date.now() });
+  const auth = loadAuth();
+  if (!auth || !auth.isAuth) {
+    // Strictly redirect any new / unauthenticated device/browser to login.html
+    window.location.replace('login.html');
   }
 }
 
 function redirectIfAuthed(target = 'home.html') {
-  if (loadAuth()) {
-    window.location.href = target;
+  const auth = loadAuth();
+  if (auth && auth.isAuth) {
+    window.location.replace(target);
   }
 }
 
 function doLogout() {
   clearAuth();
-  window.location.href = 'login.html';
+  window.location.replace('login.html');
 }
 
 // ---------------- Duration & Runtime Formatters ----------------
