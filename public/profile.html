@@ -142,30 +142,35 @@
     try {
       const res = await fetch('/api/auth/config');
       const data = await res.json();
-      if (data && data.users && data.users.length >= 2) {
-        document.getElementById('acc1Name').value = data.users[0].name || '';
-        document.getElementById('acc1Mobile').value = data.users[0].mobile || '';
-        document.getElementById('acc2Name').value = data.users[1].name || '';
-        document.getElementById('acc2Mobile').value = data.users[1].mobile || '';
+      if (data && Array.isArray(data.users)) {
+        if (data.users[0]) {
+          document.getElementById('acc1Name').value = data.users[0].name || '';
+          document.getElementById('acc1Mobile').value = data.users[0].mobile || '';
+        }
+        if (data.users[1]) {
+          document.getElementById('acc2Name').value = data.users[1].name || '';
+          document.getElementById('acc2Mobile').value = data.users[1].mobile || '';
+        }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('Could not load accounts:', e);
+    }
   }
 
   async function handleSaveAccounts() {
-    const user1 = {
-      name: document.getElementById('acc1Name').value.trim(),
-      mobile: document.getElementById('acc1Mobile').value.trim()
-    };
-    const user2 = {
-      name: document.getElementById('acc2Name').value.trim(),
-      mobile: document.getElementById('acc2Mobile').value.trim()
-    };
+    const name1 = document.getElementById('acc1Name').value.trim();
+    const mob1 = document.getElementById('acc1Mobile').value.trim();
+    const name2 = document.getElementById('acc2Name').value.trim();
+    const mob2 = document.getElementById('acc2Mobile').value.trim();
     const recoveryPin = document.getElementById('accRecoveryPin').value.trim();
 
-    if (!user1.mobile || !user2.mobile) {
-      toast('Please enter WhatsApp numbers for both farmer accounts.', 'error');
+    if (!mob1 && !mob2) {
+      toast('Please enter at least one mobile number.', 'error');
       return;
     }
+
+    const user1 = { name: name1 || 'Farmer 1', mobile: mob1 };
+    const user2 = { name: name2 || 'Farmer 2', mobile: mob2 };
 
     try {
       const res = await fetch('/api/auth/update-accounts', {
@@ -178,6 +183,18 @@
         toast(data.error || 'Failed to update accounts.', 'error');
         return;
       }
+
+      // Update local storage session with active farmer info
+      if (name1) {
+        const curAuth = loadAuth() || {};
+        curAuth.name = name1;
+        curAuth.mobile = mob1;
+        curAuth.isAuth = true;
+        localStorage.setItem('pumpAuth', JSON.stringify(curAuth));
+        document.getElementById('profileFarmerName').textContent = name1;
+        document.getElementById('profileWhatsApp').textContent = `💬 WhatsApp: +91 ${mob1}`;
+      }
+
       toast('Farmer WhatsApp accounts updated successfully! ✓', 'success');
       loadAccounts();
     } catch (err) {

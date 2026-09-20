@@ -769,35 +769,39 @@ app.post('/api/auth/verify-otp-reset', (req, res) => {
   }
 });
 
-// 6. POST /api/auth/update-accounts — Update authorized farmer names and WhatsApp mobile numbers
+// 6. POST /api/auth/update-accounts — Update authorized farmer names and mobile numbers
 app.post('/api/auth/update-accounts', (req, res) => {
   try {
     const { user1, user2, recoveryPin } = req.body;
     const data = loadUsersData();
 
-    if (user1) {
-      if (user1.name) data.users[0].name = String(user1.name).trim();
-      if (user1.mobile) data.users[0].mobile = String(user1.mobile).replace(/\D/g, '');
-      if (user1.email) data.users[0].email = String(user1.email).trim().toLowerCase();
-      if (user1.password && user1.password.length >= 4) data.users[0].passwordHash = hashPassword(user1.password);
+    if (!data.users || !Array.isArray(data.users)) {
+      data.users = [];
     }
 
-    if (user2) {
-      if (user2.name) data.users[1].name = String(user2.name).trim();
-      if (user2.mobile) data.users[1].mobile = String(user2.mobile).replace(/\D/g, '');
-      if (user2.email) data.users[1].email = String(user2.email).trim().toLowerCase();
-      if (user2.password && user2.password.length >= 4) data.users[1].passwordHash = hashPassword(user2.password);
+    if (user1 && (user1.name || user1.mobile)) {
+      if (!data.users[0]) data.users[0] = { name: '', mobile: '', email: '', passwordHash: '' };
+      if (user1.name !== undefined) data.users[0].name = String(user1.name).trim();
+      if (user1.mobile !== undefined) data.users[0].mobile = String(user1.mobile).replace(/\D/g, '');
+    }
+
+    if (user2 && (user2.name || user2.mobile)) {
+      if (!data.users[1]) data.users[1] = { name: '', mobile: '', email: '', passwordHash: '' };
+      if (user2.name !== undefined) data.users[1].name = String(user2.name).trim();
+      if (user2.mobile !== undefined) data.users[1].mobile = String(user2.mobile).replace(/\D/g, '');
     }
 
     if (recoveryPin) {
       data.recoveryPin = String(recoveryPin).trim();
     }
 
+    data.isConfigured = data.users.length > 0;
     saveUsersData(data);
-    console.log(`[Auth] Farm accounts updated: ${data.users[0].name} (${data.users[0].mobile}), ${data.users[1].name} (${data.users[1].mobile})`);
+    console.log(`[Auth] Farm accounts updated successfully`);
 
-    res.json({ success: true, message: 'Farm accounts updated successfully' });
+    res.json({ success: true, message: 'Settings updated successfully' });
   } catch (err) {
+    console.error('[Auth] Error in update-accounts:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });
