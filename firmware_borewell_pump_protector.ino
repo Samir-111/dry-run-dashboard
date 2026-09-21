@@ -25,36 +25,32 @@
 #include <HTTPClient.h>
 #include <WiFiClientSecure.h>
 
-/******************** WIFI CONFIGURATION ********************/
+// WiFi credentials
 char ssid[] = "samir";
 char pass[] = "987654321";
 
-/******************** LIVE SERVER URL ***********************/
 // Live Render URL (Permanent 24/7 Cloud IoT Server):
 const char* SERVER_URL = "https://dry-run-dashboard.onrender.com";
 
-/******************** PIN CONFIGURATION **********************/
+// Pin setup
 const int RELAY_PIN = 4;
 const int WATER_SENSOR_PIN = 36;
 const bool RELAY_ACTIVE_LOW = true;
 
-/******************** SIM800L GSM PIN CONFIGURATION **********/
-// Connect SIM800L TXD -> ESP32 GPIO 16 (RX2)
-// Connect SIM800L RXD -> ESP32 GPIO 17 (TX2)
-// Connect SIM800L GND -> ESP32 GND (MANDATORY Common Ground)
+// SIM800L pins
 #define SIM800_RX_PIN 16
 #define SIM800_TX_PIN 17
 #define GSM_BAUD 9600
 
-HardwareSerial gsmSerial(2); // Use ESP32 Hardware Serial2
+HardwareSerial gsmSerial(2);
 
-// Default Emergency Farmer Phone Number for Call & SMS:
+// Farmer phone number for SMS and call alerts
 String farmerMobileNumber = "9022616290"; 
 bool gsmReady = false;
 
-/******************** GSM HELPER FUNCTIONS *******************/
 WiFiClientSecure secClient;
 
+// Send AT command to GSM module
 bool sendGsmCommand(String cmd, unsigned long timeout = 500) {
   gsmSerial.println(cmd);
   unsigned long start = millis();
@@ -67,13 +63,14 @@ bool sendGsmCommand(String cmd, unsigned long timeout = 500) {
   return resp.indexOf("OK") >= 0;
 }
 
+// Initialize GSM module
 void initGSM() {
   Serial.println("\n[GSM] Initializing SIM800L on GPIO 16 (RX) / 17 (TX)...");
   gsmSerial.begin(GSM_BAUD, SERIAL_8N1, SIM800_RX_PIN, SIM800_TX_PIN);
   gsmSerial.setTimeout(200);
   delay(300);
 
-  // Quick non-blocking AT test
+  // Quick AT check
   gsmSerial.println("AT");
   delay(150);
   if (gsmSerial.available()) {
@@ -82,8 +79,8 @@ void initGSM() {
     if (resp.indexOf("OK") >= 0) {
       gsmReady = true;
       Serial.println("[GSM] SIM800L Module Detected & Ready ✓");
-      sendGsmCommand("AT+CMGF=1", 500); // Set SMS to Text Mode
-      sendGsmCommand("AT+CLIP=1", 500); // Enable Caller ID
+      sendGsmCommand("AT+CMGF=1", 500); // text mode
+      sendGsmCommand("AT+CLIP=1", 500); // caller ID
       return;
     }
   }
@@ -91,7 +88,7 @@ void initGSM() {
   gsmReady = false;
 }
 
-// Send Dry-Run SMS Alert to Farmer
+// Send dry-run alert SMS to farmer
 void sendDryRunSms(String mobile, String msg) {
   if (mobile.length() < 10) return;
   String target = mobile;
@@ -106,12 +103,12 @@ void sendDryRunSms(String mobile, String msg) {
   delay(300);
   gsmSerial.print(msg);
   delay(200);
-  gsmSerial.write(26); // Ctrl+Z to send SMS
+  gsmSerial.write(26); // Ctrl+Z to send
   delay(3000);
   Serial.println("[GSM] SMS Dispatch Command sent.");
 }
 
-// Make an Emergency Ring / Call to Farmer's Phone on Dry-Run Trip
+// Emergency ring to farmer phone on dry-run cut-off
 void makeDryRunEmergencyCall(String mobile) {
   if (mobile.length() < 10) return;
   String target = mobile;
@@ -121,19 +118,18 @@ void makeDryRunEmergencyCall(String mobile) {
   Serial.println("[GSM] Making Emergency Alert Call to: " + target);
   gsmSerial.println("ATD" + target + ";");
   
-  // Ring for 15 seconds so farmer notices the incoming call
+  // Ring for 15 seconds
   unsigned long callStart = millis();
   while (millis() - callStart < 15000) {
     delay(200);
-    // Non-blocking water read during ring
     readWaterSensor();
   }
   
-  gsmSerial.println("ATH"); // Hang up call
+  gsmSerial.println("ATH"); // Hang up
   Serial.println("[GSM] Emergency call completed.");
 }
 
-// Trigger both Call + SMS automatically on Dry Run Protection
+// Send call and SMS alerts on dry run
 void triggerGsmAlerts() {
   Serial.println("[GSM] Triggering Emergency Call & SMS to Farmer...");
   String alertMsg = "⚠️ KisanGuard ALERT: Borewell Motor was AUTO-STOPPED due to Dry-Run (No Water detected)! Motor is safe.";
@@ -142,18 +138,18 @@ void triggerGsmAlerts() {
   makeDryRunEmergencyCall(farmerMobileNumber);
 }
 
-/******************** WATER SENSOR ***************************/
+// Water sensor threshold
 int waterThreshold = 1500;
 
-/******************** TIMING CONFIGURATION *******************/
+// Timing constants in ms
 const unsigned long STARTUP_BYPASS_TIME = 90000UL;  // 90 sec
 const unsigned long DRY_VERIFY_TIME    = 5000UL;   // 5 sec
 const unsigned long USER_RESPONSE_TIME = 30000UL;  // 30 sec
-const unsigned long WATER_PROBE_DELAY  = 60000UL;  // 1 minute
+const unsigned long WATER_PROBE_DELAY  = 60000UL;  // 1 min
 
 bool waitingForWaterProbe = false;
 
-/******************** SYSTEM STATES **************************/
+// System states
 enum PumpState {
   SYSTEM_OFF,
   STARTING,
@@ -164,7 +160,7 @@ enum PumpState {
 
 PumpState currentState = SYSTEM_OFF;
 
-/******************** GLOBAL VARIABLES ***********************/
+// Global state variables
 int waterADC = 0;
 bool waterPresent = false;
 bool dryVerificationStarted = false;
@@ -184,7 +180,7 @@ String protectionStatusText = "NORMAL";
 String faultText = "NONE";
 String runtimeText = "00:00:00";
 
-/******************** HELPER FUNCTIONS ***********************/
+// Relay control
 void pumpRelayOn() {
   if (RELAY_ACTIVE_LOW) digitalWrite(RELAY_PIN, LOW);
   else digitalWrite(RELAY_PIN, HIGH);
@@ -202,17 +198,13 @@ bool isPumpRelayOn() {
   else return digitalRead(RELAY_PIN) == HIGH;
 }
 
-/*************************************************************
- * READ WATER SENSOR
- *************************************************************/
+// Read water sensor
 void readWaterSensor() {
   waterADC = analogRead(WATER_SENSOR_PIN);
   waterPresent = (waterADC >= waterThreshold);
 }
 
-/*************************************************************
- * START PUMP
- *************************************************************/
+// Start pump
 void startPump() {
   Serial.println("\n=================================");
   Serial.println("START PUMP COMMAND RECEIVED");
@@ -236,9 +228,7 @@ void startPump() {
   Serial.println("Pump STARTING...");
 }
 
-/*************************************************************
- * STOP PUMP
- *************************************************************/
+// Stop pump
 void stopPump(const char* reason) {
   Serial.println("\n=================================");
   Serial.println("STOPPING PUMP");
@@ -260,9 +250,7 @@ void stopPump(const char* reason) {
   countdownSeconds = 0;
 }
 
-/*************************************************************
- * DRY-RUN WARNING
- *************************************************************/
+// Dry run warning state
 void startDryRunWarning() {
   Serial.println("\n=================================");
   Serial.println("DRY-RUN WARNING");
@@ -276,9 +264,7 @@ void startDryRunWarning() {
   countdownSeconds = USER_RESPONSE_TIME / 1000;
 }
 
-/*************************************************************
- * DRY-RUN PROTECTION SHUTDOWN
- *************************************************************/
+// Dry run protection shut down
 void activateDryRunProtection() {
   Serial.println("\n#################################");
   Serial.println("DRY-RUN PROTECTION ACTIVATED");
@@ -298,13 +284,11 @@ void activateDryRunProtection() {
   faultText = "DRY-RUN FAULT";
   countdownSeconds = 0;
 
-  // Trigger GSM SMS & Call alert to Farmer (if GSM module is powered and connected)
+  // Send GSM alert if module connected
   triggerGsmAlerts();
 }
 
-/*************************************************************
- * STARTUP BYPASS HANDLER
- *************************************************************/
+// Startup bypass logic (90s)
 void handleStartup() {
   unsigned long elapsed = millis() - startupStartTime;
   unsigned long remaining = (elapsed < STARTUP_BYPASS_TIME) ? (STARTUP_BYPASS_TIME - elapsed) : 0;
@@ -328,9 +312,7 @@ void handleStartup() {
   }
 }
 
-/*************************************************************
- * RUNNING STATE HANDLER
- *************************************************************/
+// Normal running monitor
 void handleRunning() {
   if (waterPresent) {
     dryVerificationStarted = false;
@@ -359,9 +341,7 @@ void handleRunning() {
   }
 }
 
-/*************************************************************
- * WATER WARNING STATE
- *************************************************************/
+// Warning timeout handler
 void handleWaterWarning() {
   if (waterPresent) {
     Serial.println("\nWATER RESTORED. Cancelling dry-run warning.");
@@ -387,9 +367,7 @@ void handleWaterWarning() {
   }
 }
 
-/*************************************************************
- * FAULT LOCK STATE
- *************************************************************/
+// Fault lock state
 void handleFaultLock() {
   pumpRelayOff();
   protectionStatusText = "FAULT LOCK";
@@ -397,9 +375,7 @@ void handleFaultLock() {
   countdownSeconds = 0;
 }
 
-/*************************************************************
- * RUNTIME UPDATE
- *************************************************************/
+// Calculate runtime string
 void updateRuntime() {
   unsigned long cur = totalRuntime;
   if (pumpStartTime > 0) cur += (millis() - pumpStartTime);
@@ -414,9 +390,7 @@ void updateRuntime() {
   runtimeText = String(buf);
 }
 
-/*************************************************************
- * STATE MACHINE & SENSOR TASK
- *************************************************************/
+// State machine task
 void sensorTask() {
   if (waitingForWaterProbe) {
     unsigned long elapsed = millis() - waterProbeStartTime;
@@ -453,9 +427,6 @@ void sensorTask() {
   updateRuntime();
 }
 
-/*************************************************************
- * DIRECT SERVER SYNC (NO BLYNK)
- *************************************************************/
 String getSystemStateString() {
   switch (currentState) {
     case SYSTEM_OFF:    return "OFF";
@@ -477,6 +448,7 @@ String getPumpStatusString() {
   }
 }
 
+// Send telemetry data and receive commands
 void syncWithServer() {
   if (WiFi.status() != WL_CONNECTED) return;
 
@@ -492,7 +464,7 @@ void syncWithServer() {
   http.addHeader("Content-Type", "application/json");
   http.setTimeout(4000);
 
-  // Build Telemetry JSON matching exact pin format
+  // Build telemetry JSON
   String json = "{";
   json += "\"relay\":" + String(isPumpRelayOn() ? 1 : 0) + ",";
   json += "\"pumpStatus\":\"" + getPumpStatusString() + "\",";
@@ -516,7 +488,7 @@ void syncWithServer() {
   if (code == 200) {
     String resp = http.getString();
 
-    // 1. Process Relay / Motor Command from Dashboard
+    // Relay command
     if (resp.indexOf("\"relay\":1") >= 0) {
       if (currentState != STARTING && currentState != RUNNING && currentState != WATER_WARNING) {
         if (currentState == FAULT_LOCK) {
@@ -532,7 +504,7 @@ void syncWithServer() {
       }
     }
 
-    // 2. Process Reset Command
+    // Reset command
     if (resp.indexOf("\"reset\":true") >= 0) {
       stopPump("System Reset from Dashboard.");
       currentState = SYSTEM_OFF;
@@ -541,7 +513,7 @@ void syncWithServer() {
       countdownSeconds = 0;
     }
 
-    // 3. Process Threshold Command
+    // Threshold command
     int thIdx = resp.indexOf("\"threshold\":");
     if (thIdx >= 0) {
       int endIdx = resp.indexOf(",", thIdx);
@@ -562,9 +534,6 @@ void syncWithServer() {
   http.end();
 }
 
-/*************************************************************
- * SETUP & MAIN LOOP
- *************************************************************/
 unsigned long lastSensorTick = 0;
 unsigned long lastSyncTick = 0;
 
@@ -574,7 +543,6 @@ void setup() {
 
   Serial.println("\n=========================================");
   Serial.println("BOREWELL PUMP PROTECTION SYSTEM");
-  Serial.println("ESP32 DIRECT IOT SERVER MODE (NO BLYNK)");
   Serial.println("=========================================");
 
   pinMode(RELAY_PIN, OUTPUT);
@@ -600,11 +568,11 @@ void setup() {
     Serial.println("\nWiFi Connection Pending (will reconnect in loop)");
   }
 
-  // Configure Secure SSL Client once
+  // Setup SSL client
   secClient.setInsecure();
   secClient.setTimeout(4);
 
-  // Initialize GSM SIM800L (Non-blocking: if SIM800L is off or missing, ESP32 continues seamlessly on WiFi)
+  // Initialize GSM
   initGSM();
 
   Serial.println("System Ready. Waiting for Dashboard commands.");
@@ -613,19 +581,19 @@ void setup() {
 void loop() {
   unsigned long now = millis();
 
-  // Run sensor and protection state machine every 100 ms
+  // Read sensors every 100ms
   if (now - lastSensorTick >= 100) {
     lastSensorTick = now;
     sensorTask();
   }
 
-  // Sync telemetry and commands with live server every 1.5 seconds
+  // Sync with server every 1.5 seconds
   if (now - lastSyncTick >= 1500) {
     lastSyncTick = now;
     syncWithServer();
   }
 
-  // Auto reconnect WiFi if dropped
+  // Reconnect WiFi if disconnected
   if (WiFi.status() != WL_CONNECTED && (now % 10000 < 50)) {
     WiFi.reconnect();
   }
