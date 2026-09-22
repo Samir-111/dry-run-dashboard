@@ -7,6 +7,10 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Lightweight keep-alive / health-check endpoints
+app.get('/api/ping', (req, res) => res.status(200).send('pong'));
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok', time: new Date().toISOString() }));
+
 // ─── Direct In-Memory IoT State Store ─────────────────────────────────────
 let deviceStore = {
   lastSeen: 0,
