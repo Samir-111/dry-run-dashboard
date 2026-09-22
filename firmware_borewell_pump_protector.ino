@@ -67,23 +67,32 @@ bool sendGsmCommand(String cmd, unsigned long timeout = 500) {
 void initGSM() {
   Serial.println("\n[GSM] Initializing SIM800L on GPIO 16 (RX) / 17 (TX)...");
   gsmSerial.begin(GSM_BAUD, SERIAL_8N1, SIM800_RX_PIN, SIM800_TX_PIN);
-  gsmSerial.setTimeout(200);
-  delay(300);
+  gsmSerial.setTimeout(500);
+  
+  // Give SIM800L time to boot up completely
+  delay(1500);
 
-  // Quick AT check
-  gsmSerial.println("AT");
-  delay(150);
-  if (gsmSerial.available()) {
-    String resp = "";
-    while (gsmSerial.available()) { resp += (char)gsmSerial.read(); }
-    if (resp.indexOf("OK") >= 0) {
-      gsmReady = true;
-      Serial.println("[GSM] SIM800L Module Detected & Ready ✓");
-      sendGsmCommand("AT+CMGF=1", 500); // text mode
-      sendGsmCommand("AT+CLIP=1", 500); // caller ID
-      return;
+  // Retry AT check up to 8 times with delays
+  for (int attempt = 1; attempt <= 8; attempt++) {
+    Serial.println("[GSM] Probing SIM800L (Attempt " + String(attempt) + "/8)...");
+    gsmSerial.println("AT");
+    delay(300);
+    
+    if (gsmSerial.available()) {
+      String resp = "";
+      while (gsmSerial.available()) { resp += (char)gsmSerial.read(); }
+      if (resp.indexOf("OK") >= 0) {
+        gsmReady = true;
+        Serial.println("[GSM] SIM800L Module Detected & Responding ✓");
+        sendGsmCommand("AT+CMGF=1", 500); // SMS Text mode
+        sendGsmCommand("AT+CLIP=1", 500); // Caller ID
+        sendGsmCommand("AT+CSQ", 500);    // Check signal quality
+        return;
+      }
     }
+    delay(500);
   }
+  
   Serial.println("[GSM] SIM800L not responding (Standby mode). System will continue on WiFi.");
   gsmReady = false;
 }
